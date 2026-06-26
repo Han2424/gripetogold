@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GripeToGold — Monthly Pain Point Intelligence</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Courier+Prime:wght@400;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black: #080808;
+    --surface: #111111;
+    --surface2: #191919;
+    --border: #242424;
+    --red: #E8291C;
+    --red-dim: #9B1B12;
+    --white: #F2F2F2;
+    --gray: #888;
+    --gray-light: #555;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,8,8,0.92);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-weight: 900; font-size: 18px; letter-spacing: -0.5px;
+  }
+  .nav-logo span { color: var(--red); }
+  .nav-cta {
+    background: var(--red); color: #fff;
+    padding: 9px 22px; border-radius: 6px;
+    font-size: 13px; font-weight: 700;
+    transition: background 0.2s;
+  }
+  .nav-cta:hover { background: #c41f14; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 70% 50% at 50% 60%, rgba(232,41,28,0.07) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 100px; padding: 6px 16px;
+    font-size: 12px; font-weight: 600; color: var(--gray);
+    letter-spacing: 0.08em; text-transform: uppercase;
+    margin-bottom: 32px;
+  }
+  .hero-eyebrow .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; } 50% { opacity: 0.3; }
+  }
+
+  .hero h1 {
+    font-size: clamp(36px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    max-width: 820px;
+    margin-bottom: 24px;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--red);
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 19px);
+    color: var(--gray);
+    max-width: 560px;
+    line-height: 1.65;
+    margin-bottom: 40px;
+  }
+
+  .hero-actions {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .btn-primary {
+    background: var(--red); color: #fff;
+    padding: 16px 40px; border-radius: 8px;
+    font-size: 16px; font-weight: 700;
+    transition: all 0.2s;
+    border: none; cursor: pointer;
+  }
+  .btn-primary:hover { background: #c41f14; transform: translateY(-1px); }
+  .hero-note { font-size: 13px; color: var(--gray-light); }
+
+  /* TICKER */
+  .ticker-wrap {
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    overflow: hidden; padding: 14px 0;
+  }
+  .ticker {
+    display: flex; gap: 60px;
+    animation: ticker 28s linear infinite;
+    white-space: nowrap;
+  }
+  .ticker-item {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px; color: var(--gray);
+    flex-shrink: 0;
+  }
+  .ticker-item strong { color: var(--red); }
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* SECTION COMMON */
+  section { padding: 100px 24px; }
+  .container { max-width: 1020px; margin: 0 auto; }
+  .section-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--red);
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 900; letter-spacing: -1px;
+    line-height: 1.1; margin-bottom: 16px;
+  }
+  .section-sub {
+    font-size: 17px; color: var(--gray);
+    max-width: 540px; line-height: 1.65;
+  }
+
+  /* PROBLEM */
+  .problem { background: var(--surface); }
+  .problem-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2px; margin-top: 60px;
+    border: 1px solid var(--border);
+    border-radius: 12px; overflow: hidden;
+  }
+  .problem-card {
+    background: var(--surface2);
+    padding: 28px 30px;
+    border: 1px solid var(--border);
+  }
+  .problem-card .icon { font-size: 24px; margin-bottom: 14px; }
+  .problem-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .problem-card p { font-size: 14px; color: var(--gray); line-height: 1.6; }
+
+  /* HOW IT WORKS */
+  .steps { display: flex; flex-direction: column; gap: 0; margin-top: 60px; }
+  .step {
+    display: grid; grid-template-columns: 60px 1fr;
+    gap: 24px; padding: 32px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    font-family: 'Courier Prime', monospace;
+    font-size: 13px; font-weight: 700; color: var(--red);
+    padding-top: 4px;
+  }
+  .step h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+  .step p { font-size: 15px; color: var(--gray); line-height: 1.65; }
+
+  /* SAMPLE */
+  .sample { background: var(--surface); }
+  .sample-cards {
+    display: flex; flex-direction: column; gap: 16px; margin-top: 50px;
+  }
+  .sample-card {
+    background: var(--black);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 16px; align-items: start;
+    transition: border-color 0.2s;
+  }
+  .sample-card:hover { border-color: var(--red-dim); }
+  .sample-card-meta {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .sample-cat {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--gray);
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .sample-vol { font-size: 12px; color: var(--gray-light); }
+  .sample-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .sample-card p { font-size: 13.5px; color: var(--gray); line-height: 1.6; }
+  .pain-badge {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    padding: 4px 10px; border-radius: 4px; white-space: nowrap;
+  }
+  .pain-high { background: rgba(232,41,28,0.12); color: var(--red); border: 1px solid var(--red-dim); }
+  .pain-med { background: rgba(245,166,35,0.1); color: #F5A623; border: 1px solid rgba(245,166,35,0.3); }
+
+  .opp-row {
+    margin-top: 12px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .opp-label { font-size: 10px; font-weight: 700; color: var(--red); letter-spacing: 0.1em; }
+  .opp-text { font-size: 13px; color: #aaa; }
+
+  /* PRICING */
+  .pricing-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 16px; margin-top: 56px;
+  }
+  .pricing-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px 28px;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .pricing-card.featured {
+    border-color: var(--red);
+    background: var(--surface);
+  }
+  .featured-badge {
+    position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+    background: var(--red); color: #fff;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 4px 14px; border-radius: 100px;
+  }
+  .plan-name { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: var(--gray); text-transform: uppercase; margin-bottom: 16px; }
+  .plan-price { font-size: 42px; font-weight: 900; letter-spacing: -1.5px; margin-bottom: 4px; }
+  .plan-price span { font-size: 16px; font-weight: 400; color: var(--gray); }
+  .plan-desc { font-size: 13px; color: var(--gray); margin-bottom: 24px; }
+  .plan-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 32px; flex: 1; }
+  .plan-features li { font-size: 14px; color: #ccc; display: flex; align-items: flex-start; gap: 10px; }
+  .plan-features li::before { content: '✓'; color: var(--red); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .btn-plan {
+    display: block; text-align: center;
+    padding: 13px; border-radius: 7px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    border: none; transition: all 0.2s;
+  }
+  .btn-plan-outline {
+    background: transparent; color: var(--white);
+    border: 1px solid var(--border);
+  }
+  .btn-plan-outline:hover { border-color: var(--gray); }
+  .btn-plan-red { background: var(--red); color: #fff; }
+  .btn-plan-red:hover { background: #c41f14; }
+
+  /* FAQ */
+  .faq { background: var(--surface); }
+  .faq-list { margin-top: 50px; display: flex; flex-direction: column; }
+  .faq-item {
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0;
+  }
+  .faq-q {
+    font-size: 16px; font-weight: 700; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px;
+  }
+  .faq-q .arrow {
+    color: var(--red); font-size: 18px; transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+  .faq-a {
+    font-size: 15px; color: var(--gray); line-height: 1.7;
+    margin-top: 14px; display: none;
+  }
+  .faq-item.open .faq-a { display: block; }
+  .faq-item.open .arrow { transform: rotate(45deg); }
+
+  /* FINAL CTA */
+  .final-cta {
+    text-align: center; padding: 100px 24px;
+    position: relative; overflow: hidden;
+  }
+  .final-cta::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 60% 70% at 50% 50%, rgba(232,41,28,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .final-cta h2 {
+    font-size: clamp(30px, 5vw, 52px);
+    font-weight: 900; letter-spacing: -1.5px;
+    margin-bottom: 16px;
+  }
+  .final-cta p { font-size: 17px; color: var(--gray); margin-bottom: 36px; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 32px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .footer-logo { font-weight: 900; font-size: 15px; }
+  .footer-logo span { color: var(--red); }
+  footer p { font-size: 13px; color: var(--gray-light); }
+
+  /* RESPONSIVE */
+  @media (max-width: 720px) {
+    nav { padding: 16px 20px; }
+    .problem-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .sample-card { grid-template-columns: 1fr; }
+    .step { grid-template-columns: 40px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Gripe<span>To</span>Gold</div>
+  <a href="#pricing" class="nav-cta">Get Access →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    Monthly Intelligence Report · 2.3M+ Posts Analyzed
+  </div>
+  <h1>Stop Guessing.<br/>Build What People Are<br/><em>Already Begging For.</em></h1>
+  <p class="hero-sub">Every month we scan millions of Reddit posts, forum complaints, and product reviews — and turn them into 17 actionable startup ideas with zero competition research required.</p>
+  <div class="hero-actions">
+    <a href="#pricing" class="btn-primary">Get This Month's Report →</a>
+    <span class="hero-note">Cancel anytime · PDF delivered to your inbox · No fluff</span>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker">
+    <span class="ticker-item">📦 Etsy bulk order chaos → <strong>8,400 complaints this month</strong></span>
+    <span class="ticker-item">💸 Freelance invoice awkwardness → <strong>11,200 complaints</strong></span>
+    <span class="ticker-item">📸 UGC photo alternatives → <strong>8,900 complaints</strong></span>
+    <span class="ticker-item">🛒 WooCommerce cart abandonment → <strong>5,900 complaints</strong></span>
+    <span class="ticker-item">📊 Multi-Stripe MRR dashboard → <strong>2,800 complaints</strong></span>
+    <span class="ticker-item">🎧 Loom price hike rage → <strong>9,800 complaints</strong></span>
+    <span class="ticker-item">📦 Etsy bulk order chaos → <strong>8,400 complaints this month</strong></span>
+    <span class="ticker-item">💸 Freelance invoice awkwardness → <strong>11,200 complaints</strong></span>
+    <span class="ticker-item">📸 UGC photo alternatives → <strong>8,900 complaints</strong></span>
+    <span class="ticker-item">🛒 WooCommerce cart abandonment → <strong>5,900 complaints</strong></span>
+    <span class="ticker-item">📊 Multi-Stripe MRR dashboard → <strong>2,800 complaints</strong></span>
+    <span class="ticker-item">🎧 Loom price hike rage → <strong>9,800 complaints</strong></span>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <p class="section-label">The Problem</p>
+    <h2 class="section-title">Finding a real problem<br/>to solve is the hardest part.</h2>
+    <p class="section-sub">Most founders waste months on ideas nobody asked for. The ones who win find real pain, proven demand, zero good solutions.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="icon">😮‍💨</div>
+        <h3>Hours lost scrolling Reddit</h3>
+        <p>You know the signal is in there somewhere. But manually hunting through thousands of posts isn't a strategy — it's procrastination with extra steps.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🌀</div>
+        <h3>"Let me do market research" spiral</h3>
+        <p>Three tabs become thirty. You end up reading about a competitor's Series B instead of building anything. The research loop never ends.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">💡</div>
+        <h3>Ideas without evidence</h3>
+        <p>Gut feelings aren't validation. Your idea might be great — or it might be something 12 people want and none of them will pay for.</p>
+      </div>
+      <div class="problem-card">
+        <div class="icon">🏗️</div>
+        <h3>Building before validating</h3>
+        <p>Three months of work. Launch day. Crickets. The product was real — the demand wasn't. You needed data before the first line of code.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section>
+  <div class="container">
+    <p class="section-label">How It Works</p>
+    <h2 class="section-title">Intelligence delivered.<br/>No setup required.</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01 —</div>
+        <div>
+          <h3>We scan 2.3M+ posts every month</h3>
+          <p>Reddit, Twitter/X, Indie Hackers, G2 reviews, niche e-commerce forums. Every source where real users vent about real frustrations — without a PR filter.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02 —</div>
+        <div>
+          <h3>AI + human curation filters the noise</h3>
+          <p>Not every complaint is an opportunity. We filter for specificity, volume, frustration intensity, and — crucially — the absence of a good existing solution.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03 —</div>
+        <div>
+          <h3>You get 17 ready-to-act opportunities</h3>
+          <p>Each entry includes the problem, real user quotes, complaint volume, pain severity, and a concrete opportunity statement: what to build, for whom, at what price point.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04 —</div>
+        <div>
+          <h3>PDF lands in your inbox on the 1st</h3>
+          <p>No dashboard to log into. No onboarding flow. A clean, dense, professional report you can read with your morning coffee and act on the same day.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SAMPLE -->
+<section class="sample">
+  <div class="container">
+    <p class="section-label">Sample From This Month</p>
+    <h2 class="section-title">This is what you're<br/>getting every month.</h2>
+    <p class="section-sub">Three of the 17 problems from the June 2026 report. The full PDF has 14 more — plus opportunity briefs for each.</p>
+    <div class="sample-cards">
+
+      <div class="sample-card">
+        <div>
+          <div class="sample-card-meta">
+            <span class="sample-cat">E-Commerce</span>
+            <span class="sample-vol">8,400 mentions this month</span>
+          </div>
+          <h3>Etsy sellers can't manage bulk orders without losing their mind</h3>
+          <p>Sellers receiving 50+ orders during sale events report that Etsy's native dashboard becomes unusable. No batch label printing, no bulk status updates, no priority sorting.</p>
+          <div class="opp-row">
+            <span class="opp-label">💡 OPP</span>
+            <span class="opp-text">$9/mo browser extension for Etsy bulk order management. Shopify has this. Etsy doesn't.</span>
+          </div>
+        </div>
+        <span class="pain-badge pain-high">HIGH PAIN</span>
+      </div>
+
+      <div class="sample-card">
+        <div>
+          <div class="sample-card-meta">
+            <span class="sample-cat">SaaS</span>
+            <span class="sample-vol">11,200 mentions this month</span>
+          </div>
+          <h3>Freelancers lose money because invoice follow-up is awkward and manual</h3>
+          <p>Freelancers consistently report that chasing late payments is the most stressful part of their business. Existing tools either do too much or too little.</p>
+          <div class="opp-row">
+            <span class="opp-label">💡 OPP</span>
+            <span class="opp-text">Focused invoice-nudge SaaS: automated, polite follow-up sequences with tone control. $15/mo.</span>
+          </div>
+        </div>
+        <span class="pain-badge pain-high">HIGH PAIN</span>
+      </div>
+
+      <div class="sample-card">
+        <div>
+          <div class="sample-card-meta">
+            <span class="sample-cat">E-Commerce</span>
+            <span class="sample-vol">5,900 mentions this month</span>
+          </div>
+          <h3>Shopify store owners can't A/B test product descriptions without expensive apps</h3>
+          <p>Merchants want to test copy variants. Native Shopify offers nothing. Third-party apps charge $50–200/mo for features most small stores don't fully use.</p>
+          <div class="opp-row">
+            <span class="opp-label">💡 OPP</span>
+            <span class="opp-text">Lightweight Shopify app focused only on copy A/B testing. $12/mo. Tiny scope, massive demand.</span>
+          </div>
+        </div>
+        <span class="pain-badge pain-med">MED PAIN</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="container">
+    <p class="section-label">Pricing</p>
+    <h2 class="section-title">One report pays for itself<br/>with a single good idea.</h2>
+    <p class="section-sub">No annual lock-in. Cancel before the next billing cycle and you won't be charged again.</p>
+    <div class="pricing-grid">
+
+      <div class="pricing-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$9<span>/mo</span></div>
+        <div class="plan-desc">For solo builders testing the waters.</div>
+        <ul class="plan-features">
+          <li>Monthly PDF report (17 problems)</li>
+          <li>E-commerce + SaaS categories</li>
+          <li>Complaint volume per problem</li>
+          <li>Real user quotes included</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a href="#" class="btn-plan btn-plan-outline">Get Started</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$29<span>/mo</span></div>
+        <div class="plan-desc">For serious builders who move fast.</div>
+        <ul class="plan-features">
+          <li>Everything in Starter</li>
+          <li>Weekly trend alerts via email</li>
+          <li>6 categories (+ fintech, health, dev tools)</li>
+          <li>Month-over-month trend data</li>
+          <li>Competitor gap analysis per problem</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="#" class="btn-plan btn-plan-red">Get Pro Access</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="plan-name">Team</div>
+        <div class="plan-price">$79<span>/mo</span></div>
+        <div class="plan-desc">For agencies and product teams.</div>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>API access to raw data</li>
+          <li>Custom category filters</li>
+          <li>Up to 5 team members</li>
+          <li>Slack delivery option</li>
+          <li>Dedicated account manager</li>
+        </ul>
+        <a href="#" class="btn-plan btn-plan-outline">Contact Us</a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq">
+  <div class="container">
+    <p class="section-label">FAQ</p>
+    <h2 class="section-title">Questions we actually get.</h2>
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Where does the data come from?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">We aggregate data from Reddit (multiple subreddits per category), Twitter/X, Indie Hackers, G2 and Capterra reviews, and niche forums relevant to e-commerce and SaaS. All sources are public. We scan 2.3M+ posts per month and filter down to the highest-signal opportunities.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          How is this different from just browsing Reddit myself?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">Three things. Volume — we cover dozens of sources simultaneously, not just the subreddits you know. Filtering — raw complaints aren't ideas; we add complaint volume, pain severity scoring, and an opportunity brief for each. Time — a full month of research delivered in 5 minutes of reading.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Are these ideas exclusive to subscribers?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">No, and we're upfront about that. The problems in the report are real, public complaints — anyone could find them with enough time. What we provide is the curation, analysis, and framing. Execution is still entirely up to you.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          What format is the report?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">A professionally formatted PDF, delivered to your inbox on the 1st of each month. No dashboard to log into, no app to download. Works on any device. Pro and Team subscribers also receive weekly trend alerts via email.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          Can I cancel anytime?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">Yes. Cancel before your next billing date and you won't be charged again. You keep access to every report you've already received. No cancellation fees, no awkward retention flows.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)">
+          I'm not technical. Is this still useful for me?
+          <span class="arrow">+</span>
+        </div>
+        <div class="faq-a">Absolutely. The report is written for anyone who wants to build a product — technical or not. The opportunity briefs include pricing suggestions, target audiences, and scope descriptions that are useful whether you're hiring a developer, using no-code tools, or writing code yourself.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="container">
+    <h2>Your next product idea<br/>is already out there.</h2>
+    <p>Someone is complaining about it right now. We'll find it for you.</p>
+    <a href="#pricing" class="btn-primary">Get This Month's Report →</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Gripe<span>To</span>Gold</div>
+  <p>Monthly Pain Point Intelligence · hello@gripetogold.com</p>
+  <p style="font-size:12px;color:#444;">© 2026 GripeToGold. All rights reserved.</p>
+</footer>
+
+<script>
+  function toggleFaq(el) {
+    const item = el.closest('.faq-item');
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+    if (!isOpen) item.classList.add('open');
+  }
+</script>
+
+</body>
+</html>
