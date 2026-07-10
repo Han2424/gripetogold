@@ -167,8 +167,6 @@ Collected signals are saved into:
 public.raw_signal_items
 ```
 
-Reddit is disabled by default because commercial/report usage may require official approval and API credentials.
-
 Package automation then uses:
 
 ```text
@@ -183,7 +181,8 @@ public.opportunity_drafts
 
 ## Current limitations
 
-- Reddit is disabled until official API approval/credentials are ready.
+- Reddit collection is active through public search endpoints; monitor rate limits and platform-policy changes before increasing volume.
+- X and G2 remain inactive until their official/authorized credentials are configured.
 - GitHub unauthenticated search has rate limits. Add a token later if volume grows.
 - Draft generation and AI scoring are heuristic for now. Add OpenAI scoring later for stronger analysis.
 - Email sending uses Resend when `RESEND_API_KEY` and a verified `REPORT_FROM_EMAIL` are configured; otherwise it stays in the local queue.
