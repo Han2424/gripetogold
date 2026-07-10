@@ -1,0 +1,138 @@
+{
+  "realSources": [
+    {
+      "provider": "hackernews",
+      "category": "SaaS",
+      "queries": [
+        "too expensive software",
+        "alternative to stripe",
+        "invoice follow up",
+        "manual workflow saas",
+        "wish there was a tool"
+      ]
+    },
+    {
+      "provider": "hackernews",
+      "category": "E-Commerce",
+      "queries": [
+        "shopify app problem",
+        "woocommerce issue",
+        "etsy seller problem",
+        "cart abandonment",
+        "shipping labels"
+      ]
+    },
+    {
+      "provider": "hackernews",
+      "category": "Creator Tools",
+      "queries": [
+        "video editing workflow",
+        "newsletter tool expensive",
+        "creator workflow",
+        "podcast editing",
+        "alternative to loom"
+      ]
+    },
+    {
+      "provider": "github",
+      "category": "SaaS",
+      "queries": [
+        "\"manual workflow\" feature request",
+        "\"deploy and test\" workflow",
+        "\"user feedback\" automation",
+        "\"invoice reminder\" feature request",
+        "\"too expensive\" software"
+      ]
+    },
+    {
+      "provider": "github",
+      "category": "E-Commerce",
+      "queries": [
+        "woocommerce \"product sync\"",
+        "shopify \"size guide\"",
+        "checkout \"not working\"",
+        "\"bulk order\" workflow",
+        "\"shipping label\" automation"
+      ]
+    },
+    {
+      "provider": "stackexchange",
+      "category": "SaaS",
+      "site": "webapps",
+      "queries": [
+        "alternative to",
+        "invoice reminder",
+        "too expensive",
+        "manual workflow"
+      ]
+    },
+    {
+      "provider": "stackexchange",
+      "category": "E-Commerce",
+      "site": "webapps",
+      "queries": [
+        "shopify checkout problem",
+        "woocommerce product sync",
+        "bulk order workflow",
+        "shipping label automation"
+      ]
+    },
+    {
+      "provider": "stackexchange",
+      "category": "Creator Tools",
+      "site": "superuser",
+      "queries": [
+        "video editing workflow",
+        "audio editing automation",
+        "screen recording alternative",
+        "newsletter tool"
+      ]
+    },
+    {
+      "provider": "twitter",
+      "category": "SaaS",
+      "queries": ["manual workflow problem", "software too expensive", "alternative to SaaS", "invoice follow up"]
+    },
+    {
+      "provider": "twitter",
+      "category": "E-Commerce",
+      "queries": ["shopify problem", "etsy seller workflow", "checkout not working", "bulk order"]
+    },
+    {
+      "provider": "g2",
+      "category": "SaaS",
+      "queries": ["too expensive", "manual workflow", "missing feature", "difficult to use"]
+    },
+    {
+      "provider": "g2",
+      "category": "E-Commerce",
+      "queries": ["order management", "product sync", "checkout", "shipping workflow"]
+    }
+  ],
+  "reddit": [
+    {
+      "enabled": true,
+      "category": "SaaS",
+      "subreddits": ["SaaS", "Entrepreneur", "smallbusiness", "freelance"],
+      "queries": [
+        "hate invoicing",
+        "wish there was a tool",
+        "manual workflow",
+        "too expensive software",
+        "alternative to"
+      ]
+    },
+    {
+      "enabled": true,
+      "category": "E-Commerce",
+      "subreddits": ["shopify", "woocommerce", "EtsySellers", "ecommerce"],
+      "queries": ["manual workflow", "bulk order", "checkout problem", "shipping labels", "product sync"]
+    },
+    {
+      "enabled": true,
+      "category": "Creator Tools",
+      "subreddits": ["content_marketing", "podcasting", "VideoEditing", "youtubers"],
+      "queries": ["manual workflow", "too expensive", "alternative to", "editing problem"]
+    }
+  ]
+}
