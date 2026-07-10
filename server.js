@@ -29,6 +29,10 @@ const REPORT_FROM_EMAIL = process.env.REPORT_FROM_EMAIL || "";
 const REPORT_REPLY_TO = process.env.REPORT_REPLY_TO || "help.gripetogold@gmail.com";
 const X_BEARER_TOKEN = process.env.X_BEARER_TOKEN || "";
 const G2_FEED_URL = process.env.G2_FEED_URL || "";
+const REDDIT_CLIENT_ID = process.env.REDDIT_CLIENT_ID || "";
+const REDDIT_CLIENT_SECRET = process.env.REDDIT_CLIENT_SECRET || "";
+let redditAccessToken = "";
+let redditAccessTokenExpiresAt = 0;
 
 const PACKAGE_CONFIG = {
   starter: {
@@ -313,6 +317,9 @@ async function collectSignals({ categories = [], includeReddit = false } = {}) {
   }
 
   if (includeReddit) {
+    if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
+      providerCounts.reddit = 0;
+    } else {
     for (const group of sourceConfig.reddit || []) {
       if (group.enabled === false) continue;
       if (selectedCategories.size && !selectedCategories.has(group.category)) continue;
@@ -334,6 +341,7 @@ async function collectSignals({ categories = [], includeReddit = false } = {}) {
           }
         }
       }
+    }
     }
   }
 
@@ -918,6 +926,7 @@ async function collectStackExchange({ category, site, query, limit }) {
 }
 
 async function collectRedditSearch({ category, subreddit, query, limit }) {
+  const accessToken = await getRedditAccessToken();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), BOT_FETCH_TIMEOUT_MS);
   const params = new URLSearchParams({
@@ -927,14 +936,15 @@ async function collectRedditSearch({ category, subreddit, query, limit }) {
     t: "week",
     limit: String(limit)
   });
-  const url = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}/search.json?${params}`;
+  const url = `https://oauth.reddit.com/r/${encodeURIComponent(subreddit)}/search?${params}`;
   let response;
   try {
     response = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent": BOT_USER_AGENT,
-        "Accept": "application/json"
+        "Accept": "application/json",
+        "Authorization": `Bearer ${accessToken}`
       }
     });
   } catch (error) {
@@ -1100,6 +1110,36 @@ function buildOpportunityDrafts(items, period, previousItems = []) {
     .slice(0, MAX_REPORT_OPPORTUNITIES);
 
   return { drafts, diagnostics };
+}
+
+async function getRedditAccessToken() {
+  if (!REDDIT_CLIENT_ID || !REDDIT_CLIENT_SECRET) {
+    throw new Error("reddit is configured but REDDIT_CLIENT_ID or REDDIT_CLIENT_SECRET is missing");
+  }
+  if (redditAccessToken && Date.now() < redditAccessTokenExpiresAt) return redditAccessToken;
+  const credentials = Buffer.from(`${REDDIT_CLIENT_ID}:${REDDIT_CLIENT_SECRET}`).toString("base64");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), BOT_FETCH_TIMEOUT_MS);
+  try {
+    const response = await fetch("https://www.reddit.com/api/v1/access_token", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Authorization": `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": BOT_USER_AGENT
+      },
+      body: "grant_type=client_credentials"
+    });
+    if (!response.ok) throw new Error(`Reddit OAuth returned ${response.status}`);
+    const json = await response.json();
+    if (!json.access_token) throw new Error("Reddit OAuth did not return an access token");
+    redditAccessToken = json.access_token;
+    redditAccessTokenExpiresAt = Date.now() + Math.max(60, Number(json.expires_in || 3600) - 60) * 1000;
+    return redditAccessToken;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function inferPainKeyword(text) {
