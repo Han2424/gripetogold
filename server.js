@@ -62,9 +62,10 @@ const PACKAGE_CONFIG = {
 };
 
 const SOURCE_RELEVANCE_THRESHOLD = 55;
-const OPPORTUNITY_RELEVANCE_RATIO = 0.7;
+const OPPORTUNITY_RELEVANCE_RATIO = 0.6;
 const MIN_RELEVANT_SOURCES = 50;
 const MAX_REPORT_OPPORTUNITIES = 12;
+const ALLOWED_INTERESTS = ["SaaS", "E-Commerce", "Creator Tools"];
 
 const PAIN_PATTERNS = [
   {
@@ -239,18 +240,32 @@ async function handleWaitlist(req, res) {
   const body = await readJsonBody(req);
   const email = normalizeEmail(body.email);
   const source = String(body.source || "landing_page").slice(0, 80);
-  const planInterest = body.planInterest ? String(body.planInterest).slice(0, 80) : null;
+  const requestedPlan = normalizePlan(body.plan || body.planInterest) || "starter";
+  const interests = [...new Set((Array.isArray(body.interests) ? body.interests : [])
+    .map(String)
+    .filter((interest) => ALLOWED_INTERESTS.includes(interest)))];
 
   if (!email) {
     sendJson(res, 400, { error: "Please enter a valid email address." });
     return;
   }
 
+  if (!interests.length) {
+    sendJson(res, 400, { error: "Choose at least one interest." });
+    return;
+  }
+  if (interests.length > 3) {
+    sendJson(res, 400, { error: "Choose no more than three interests." });
+    return;
+  }
+
   const result = await saveWaitlistSubscriber({
     email,
     source,
-    plan_interest: planInterest,
-    first_pdf_requested: true
+    plan_interest: requestedPlan,
+    interests,
+    first_pdf_requested: true,
+    next_report_due: nextReportDue(requestedPlan)
   });
 
   if (!result.ok) {
@@ -499,7 +514,8 @@ async function generateOpportunityReport(period, categories = []) {
 async function handlePdfGenerate(req, res) {
   try {
     const body = await readJsonBody(req);
-    const plan = normalizePlan(body.plan);
+    const subscriber = body.subscriberEmail ? await loadSubscriber(String(body.subscriberEmail)) : null;
+    const plan = normalizePlan(subscriber?.plan_interest || body.plan);
     const config = PACKAGE_CONFIG[plan];
     const period = body.period === "weekly" ? "weekly" : "monthly";
 
@@ -512,25 +528,65 @@ async function handlePdfGenerate(req, res) {
       return;
     }
 
-    let categories = [...config.categories];
-    if (plan === "team") {
+    let categories = subscriber?.interests?.length
+      ? subscriber.interests.filter((interest) => ALLOWED_INTERESTS.includes(interest))
+      : [...config.categories];
+    if (!subscriber && plan === "team") {
       const db = await readLocalDb();
       categories = db.team_settings.categories.length ? db.team_settings.categories : categories;
     }
 
+    if (subscriber && body.prepareLatest !== false) {
+      const collection = await collectSignals({ categories, includeReddit: true });
+      if (!collection.ok) {
+        sendJson(res, collection.status || 500, { error: collection.error || "Could not collect the subscriber's latest signals." });
+        return;
+      }
+      const report = await generateOpportunityReport(period, categories);
+      if (!report.ok) {
+        sendJson(res, report.status || 500, { error: report.error || "Could not prepare the subscriber's report." });
+        return;
+      }
+    }
+
     const outputPath = await generatePdfReport({ plan, period, categories });
+    if (subscriber) {
+      await saveWaitlistSubscriber({
+        ...subscriber,
+        last_report_at: new Date().toISOString(),
+        next_report_due: nextReportDue(plan, period)
+      });
+    }
     const relativePath = outputPath.replace(root, "").replace(/\\/g, "/");
     sendJson(res, 200, {
       ok: true,
       plan,
       period,
       path: outputPath,
-      url: relativePath.startsWith("/") ? relativePath : `/${relativePath}`
+      url: relativePath.startsWith("/") ? relativePath : `/${relativePath}`,
+      subscriber_email: subscriber?.email || null,
+      categories
     });
   } catch (error) {
     console.error("PDF generation failed:", error);
     sendJson(res, 500, { error: error.message || "Could not generate PDF." });
   }
+}
+
+async function loadSubscriber(email) {
+  const normalized = normalizeEmail(email);
+  if (!normalized) return null;
+  if (USE_SUPABASE) {
+    const result = await supabaseRequest(`/waitlist_subscribers?email=eq.${encodeURIComponent(normalized)}&select=*&limit=1`, { method: "GET" });
+    return result.ok ? result.data?.[0] || null : null;
+  }
+  const db = await readLocalDb();
+  return db.waitlist_subscribers.find((subscriber) => subscriber.email === normalized) || null;
+}
+
+function nextReportDue(plan, period = "") {
+  const days = period === "monthly" || plan === "starter" ? 30 : 7;
+  return new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
 }
 
 async function handleWeeklyEmail(req, res) {
@@ -1539,7 +1595,7 @@ async function saveOpportunityDrafts(drafts) {
 async function loadAdminOverview() {
   if (USE_SUPABASE) {
     const [waitlist, rawItems, drafts] = await Promise.all([
-      supabaseRequest(`/waitlist_subscribers?select=email,created_at,plan_interest&order=created_at.desc&limit=${ADMIN_OVERVIEW_LIMIT}`, { method: "GET" }),
+      supabaseRequest(`/waitlist_subscribers?select=email,created_at,plan_interest,interests,last_report_at,next_report_due&order=created_at.desc&limit=${ADMIN_OVERVIEW_LIMIT}`, { method: "GET" }),
       supabaseRequest(`/raw_signal_items?select=platform,title,category,subreddit,source_url,collected_at&order=collected_at.desc&limit=${ADMIN_OVERVIEW_LIMIT}`, { method: "GET" }),
       supabaseRequest(`/opportunity_drafts?select=title,category,period,pain_score,mention_count,relevance_score,trend_direction,current_period_mentions,previous_mention_count,created_at&order=created_at.desc&limit=${ADMIN_OVERVIEW_LIMIT}`, { method: "GET" })
     ]);
@@ -1587,10 +1643,13 @@ async function loadAdminOverview() {
         platformCounts: countBy(realRawItems, "platform"),
         categoryCounts: countBy(realRawItems, "category")
       },
-      waitlist: latest(db.waitlist_subscribers, "created_at", ADMIN_OVERVIEW_LIMIT).map(({ email, created_at, plan_interest }) => ({
+      waitlist: latest(db.waitlist_subscribers, "created_at", ADMIN_OVERVIEW_LIMIT).map(({ email, created_at, plan_interest, interests, last_report_at, next_report_due }) => ({
         email,
         created_at,
-        plan_interest
+        plan_interest,
+        interests: interests || [],
+        last_report_at: last_report_at || null,
+        next_report_due: next_report_due || null
       })),
       rawItems: latest(realRawItems, "collected_at", ADMIN_OVERVIEW_LIMIT).map(({ platform, title, category, subreddit, source_url, collected_at }) => ({
         platform,
