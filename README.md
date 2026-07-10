@@ -154,8 +154,10 @@ Optional authorized sources:
 - X/Twitter recent search via the official API (`X_BEARER_TOKEN`)
 - G2 review data through an authorized export or licensed JSON feed (`G2_FEED_URL`)
 
-An opportunity must have at least 50 relevant, deduplicated source items and a 70% semantic relevance ratio before it becomes a qualified draft.
+An opportunity must have at least 50 relevant, deduplicated source items and a 60% semantic relevance ratio before it becomes a qualified draft.
 Missing optional credentials do not create fake data or fail the rest of a collection run.
+
+Signup profiles store a plan plus one to three interests. In the admin panel, selecting a subscriber automatically restricts the available weekly/monthly period by plan, collects fresh signals for that subscriber's interests, prepares the latest draft, creates the PDF, and advances the next-report date.
 
 ## Public trend history
 
