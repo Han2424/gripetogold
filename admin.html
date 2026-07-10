@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GripeToGold Admin</title>
+<style>
+  :root {
+    --black: #080808;
+    --surface: #111111;
+    --surface2: #191919;
+    --border: #242424;
+    --red: #E8291C;
+    --white: #F2F2F2;
+    --gray: #888;
+    --green: #66D19E;
+    --amber: #F5A623;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--black);
+    color: var(--white);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.55;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 24px;
+    background: rgba(17,17,17,0.95);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  main {
+    width: min(1180px, calc(100% - 32px));
+    margin: 32px auto 80px;
+  }
+
+  h1, h2, h3, p { margin-top: 0; }
+  h1 { font-size: clamp(28px, 4vw, 46px); letter-spacing: -1px; margin-bottom: 6px; }
+  h2 { font-size: 18px; margin-bottom: 14px; }
+  p { color: var(--gray); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  input, select, button {
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--black);
+    color: var(--white);
+    font: inherit;
+    padding: 12px 14px;
+    min-width: 0;
+  }
+
+  button {
+    background: var(--red);
+    border-color: var(--red);
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  button.secondary {
+    background: transparent;
+    border-color: var(--border);
+  }
+
+  button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .status {
+    min-height: 24px;
+    margin-top: 14px;
+    color: var(--gray);
+    font-size: 14px;
+  }
+  .status.success { color: var(--green); }
+  .status.error { color: var(--amber); }
+
+  .list {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .item {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .item strong {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .meta {
+    color: var(--gray);
+    font-size: 12px;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+
+  .pill {
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 10px;
+    color: var(--gray);
+    font-size: 12px;
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .stat {
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .stat strong {
+    display: block;
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .stat span {
+    color: var(--gray);
+    font-size: 12px;
+  }
+
+  .auth-bar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) auto;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .package-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .package-row {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: center;
+    min-height: 116px;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface2);
+  }
+
+  .package-row.selected {
+    border-color: var(--red);
+    box-shadow: inset 3px 0 0 var(--red);
+  }
+
+  .package-title strong {
+    display: block;
+    font-size: 20px;
+  }
+
+  .package-title span {
+    color: var(--green);
+    font-weight: 800;
+  }
+
+  .package-features {
+    color: var(--gray);
+    font-size: 13px;
+  }
+
+  .package-features b {
+    color: var(--white);
+  }
+
+  .report-builder {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto;
+    gap: 10px;
+    align-items: end;
+    margin-top: 16px;
+  }
+
+  .field-label {
+    display: grid;
+    gap: 6px;
+    color: var(--gray);
+    font-size: 12px;
+  }
+
+  .selection-note {
+    margin-top: 12px;
+    color: var(--green);
+    font-size: 13px;
+  }
+
+  @media (max-width: 880px) {
+    .grid, .controls, .stats, .package-row, .report-builder, .auth-bar { grid-template-columns: 1fr; }
+  .package-row button { width: 100%; }
+  .subscriber-item { width:100%; text-align:left; background:transparent; border:1px solid var(--line); color:var(--text); padding:14px; border-radius:10px; cursor:pointer; }
+  .subscriber-item:hover, .subscriber-item.selected { border-color:var(--red); background:rgba(232,41,28,.06); }
+  .subscriber-detail { display:none; margin-top:18px; }
+  .subscriber-detail.open { display:block; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>GripeToGold Admin</h1>
+  <p>Run real public-source collectors, generate opportunity drafts, and check new email signups from one place.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Package Automation</h2>
+    <p>Choose one package. That single button collects real signals and prepares every report and delivery item included in that plan.</p>
+    <div class="auth-bar">
+      <input id="adminToken" type="password" placeholder="ADMIN_TOKEN"/>
+      <button class="secondary" id="refresh">Refresh Overview</button>
+    </div>
+
+    <div class="package-list">
+      <article class="package-row" data-plan="starter">
+        <div class="package-title"><strong>Starter</strong><span>$2 / month</span></div>
+        <div class="package-features"><b>Monthly:</b> SaaS + E-Commerce scan, complaint volume, source pattern notes, opportunity scores and monthly draft.</div>
+        <button class="package-run" data-plan="starter">Prepare Starter</button>
+      </article>
+
+      <article class="package-row" data-plan="growth">
+        <div class="package-title"><strong>Growth</strong><span>$9 / month</span></div>
+        <div class="package-features"><b>Weekly + monthly:</b> Everything in Starter, Creator Tools, trend direction, competitor gaps, email draft and priority feedback queue.</div>
+        <button class="package-run" data-plan="growth">Prepare Growth</button>
+      </article>
+
+      <article class="package-row" data-plan="team">
+        <div class="package-title"><strong>Team</strong><span>$20 / month</span></div>
+        <div class="package-features"><b>Weekly + monthly:</b> Everything in Growth, custom filters, raw data API, up to 5 members and Slack delivery.</div>
+        <button class="package-run" data-plan="team">Prepare Team</button>
+      </article>
+    </div>
+    <div id="status" class="status"></div>
+  </section>
+
+  <section class="panel" style="margin-top:18px;">
+    <h2>Team / Filters</h2>
+    <p>Team settings are the MVP version of Team plan features: custom category filters, member list, API access, and delivery preferences.</p>
+    <div class="controls">
+      <input id="teamMembers" type="text" placeholder="team emails, comma separated"/>
+      <select id="teamDelivery">
+        <option value="email">Email</option>
+        <option value="slack">Slack</option>
+        <option value="email_slack">Email + Slack</option>
+      </select>
+      <button id="saveTeam">Save Team Settings</button>
+    </div>
+    <div class="row">
+      <label class="pill"><input type="checkbox" class="category-filter" value="SaaS" checked/> SaaS</label>
+      <label class="pill"><input type="checkbox" class="category-filter" value="E-Commerce" checked/> E-Commerce</label>
+      <label class="pill"><input type="checkbox" class="category-filter" value="Creator Tools" checked/> Creator Tools</label>
+    </div>
+    <p class="meta" style="margin-top:12px;">API endpoint: <code>/api/public/signals?apiKey=YOUR_PUBLIC_API_KEY&amp;category=SaaS</code></p>
+  </section>
+
+  <section class="panel" style="margin-top:18px;">
+    <h2>Data Summary</h2>
+    <div id="stats" class="stats"></div>
+  </section>
+
+  <div class="grid" style="margin-top:18px;">
+    <section class="panel">
+      <h2>Recent Opportunity Drafts</h2>
+      <div id="drafts" class="list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Recent Email Signups</h2>
+      <div id="waitlist" class="list"></div>
+    </section>
+  </div>
+
+  <section class="panel subscriber-detail" id="subscriberDetail">
+    <h2>Subscriber Report</h2>
+    <div id="subscriberProfile" class="list"></div>
+    <div class="report-builder" style="margin-top:14px;">
+      <label class="field-label">Report period<select id="subscriberPeriod"><option value="monthly">Monthly</option></select></label>
+      <button id="prepareSubscriberPdf">Collect Latest Signals + Create PDF</button>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:18px;">
+    <h2>Recent Raw Signals (Unfiltered)</h2>
+    <p>This is the source inbox. Only items that pass title-level semantic relevance checks can appear in opportunity drafts and PDFs.</p>
+    <div id="rawItems" class="list"></div>
+  </section>
+
+  <section class="panel" style="margin-top:18px;" id="pdfBuilder">
+    <h2>Create PDF</h2>
+    <p>Select the package and report period you want. Preparing a package above automatically selects it here.</p>
+    <div class="report-builder">
+      <label class="field-label">
+        Package
+        <select id="pdfPlan">
+          <option value="starter">Starter</option>
+          <option value="growth">Growth</option>
+          <option value="team">Team</option>
+        </select>
+      </label>
+      <label class="field-label">
+        Report period
+        <select id="pdfPeriod">
+          <option value="monthly">Monthly</option>
+        </select>
+      </label>
+      <button id="createPdf">Create PDF</button>
+    </div>
+    <div id="selectionNote" class="selection-note">Selected: Starter / Monthly</div>
+  </section>
+</main>
+
+<script>
+  const tokenInput = document.querySelector('#adminToken');
+  const statusEl = document.querySelector('#status');
+  const savedToken = localStorage.getItem('gripetogold_admin_token');
+  if (savedToken) tokenInput.value = savedToken;
+
+  const pdfPlan = document.querySelector('#pdfPlan');
+  const pdfPeriod = document.querySelector('#pdfPeriod');
+  let selectedSubscriber = null;
+  let subscribersByEmail = new Map();
+
+  document.querySelectorAll('.package-run').forEach((button) => {
+    button.addEventListener('click', () => preparePackage(button.dataset.plan));
+  });
+  pdfPlan.addEventListener('change', () => selectPackage(pdfPlan.value));
+  pdfPeriod.addEventListener('change', updateSelectionNote);
+  document.querySelector('#createPdf').addEventListener('click', () => generatePdf());
+  document.querySelector('#saveTeam').addEventListener('click', () => saveTeamSettings());
+  document.querySelector('#refresh').addEventListener('click', () => loadOverview());
+  document.querySelector('#prepareSubscriberPdf').addEventListener('click', () => generateSubscriberPdf());
+
+  async function preparePackage(plan) {
+    selectPackage(plan);
+    const label = plan.charAt(0).toUpperCase() + plan.slice(1);
+    await action('/api/packages/run', { plan }, (data) => {
+      const run = data.run;
+      const periods = run.periods.join(' + ');
+      const warning = run.source_errors ? ` ${run.source_errors} source request(s) failed, but the rest completed.` : '';
+      setStatus(`${label} ready: ${run.collected} signals collected and ${run.drafts_created} ${periods} drafts prepared.${warning}`, 'success');
+      loadOverview({ preserveStatus: true });
+      document.querySelector('#pdfBuilder').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  function selectPackage(plan) {
+    pdfPlan.value = plan;
+    pdfPeriod.innerHTML = plan === 'starter'
+      ? '<option value="monthly">Monthly</option>'
+      : '<option value="weekly">Weekly</option><option value="monthly">Monthly</option>';
+    document.querySelectorAll('.package-row').forEach((row) => {
+      row.classList.toggle('selected', row.dataset.plan === plan);
+    });
+    updateSelectionNote();
+  }
+
+  function updateSelectionNote() {
+    const planLabel = pdfPlan.options[pdfPlan.selectedIndex].text;
+    const periodLabel = pdfPeriod.options[pdfPeriod.selectedIndex].text;
+    document.querySelector('#selectionNote').textContent = `Selected: ${planLabel} / ${periodLabel}`;
+  }
+
+  async function generatePdf() {
+    const plan = pdfPlan.value;
+    const period = pdfPeriod.value;
+    await action('/api/reports/pdf', { plan, period }, (data) => {
+      setStatus(`${data.plan} / ${data.period} PDF created.`, 'success');
+      window.open(data.url, '_blank');
+    });
+  }
+
+  async function saveTeamSettings() {
+    const categories = [...document.querySelectorAll('.category-filter:checked')].map((input) => input.value);
+    const members = document.querySelector('#teamMembers').value.split(',').map((email) => email.trim()).filter(Boolean);
+    const delivery = document.querySelector('#teamDelivery').value;
+    await action('/api/team/settings', { categories, members, delivery }, () => {
+      setStatus('Team settings saved.', 'success');
+      loadOverview();
+    });
+  }
+
+  async function loadOverview({ preserveStatus = false } = {}) {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      const response = await fetch('/api/admin/overview', {
+        headers: { 'x-admin-token-b64': encodeToken(token) }
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Could not load overview.');
+
+      renderStats(data.stats || {});
+
+      subscribersByEmail = new Map(data.waitlist.map((item) => [item.email, item]));
+      renderList('#waitlist', data.waitlist, (item) => `
+        <button class="subscriber-item" data-subscriber-email="${escapeHtml(item.email)}">
+          <strong>${escapeHtml(item.email)}</strong>
+          <div class="meta">${escapeHtml(item.plan_interest || 'starter')} · ${escapeHtml((item.interests || []).join(', ') || 'No interests')} · next ${formatDate(item.next_report_due)}</div>
+        </button>
+      `);
+      document.querySelectorAll('.subscriber-item').forEach((button) => {
+        button.addEventListener('click', () => selectSubscriber(button.dataset.subscriberEmail));
+      });
+
+      renderList('#drafts', data.drafts, (item) => `
+        <div class="item">
+          <strong>${escapeHtml(item.title)}</strong>
+          <div class="meta">${escapeHtml(item.period)} - ${escapeHtml(item.category)} - score ${item.pain_score} - relevance ${item.relevance_score ?? 0}% - ${item.mention_count} relevant sources</div>
+          <div class="meta">trend ${escapeHtml(item.trend_direction || 'not enough history')} - ${item.current_period_mentions ?? item.mention_count ?? 0} now vs ${item.previous_mention_count ?? 0} before</div>
+        </div>
+      `);
+
+      renderList('#rawItems', data.rawItems, (item) => `
+        <div class="item">
+          <strong>${escapeHtml(item.title)}</strong>
+          <div class="meta">${escapeHtml(item.category)} / ${escapeHtml(item.platform || 'source')} / ${escapeHtml(item.subreddit || '')} - ${formatDate(item.collected_at)}</div>
+          <div class="meta">${escapeHtml(item.source_url || '')}</div>
+        </div>
+      `);
+
+      if (!preserveStatus) {
+        setStatus(`Overview refreshed. Storage: ${data.storage || 'unknown'}.`, 'success');
+      }
+    } catch (error) {
+      setStatus(error.message, 'error');
+    }
+  }
+
+  async function action(url, payload, onSuccess) {
+    const token = getToken();
+    if (!token) return;
+
+    setStatus('Working... Bot runs can take a few minutes. Keep this tab open.');
+    setButtons(true);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-token-b64': encodeToken(token)
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Request failed.');
+      onSuccess(data);
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      setButtons(false);
+    }
+  }
+
+  function selectSubscriber(email) {
+    selectedSubscriber = subscribersByEmail.get(email) || null;
+    if (!selectedSubscriber) return;
+    const plan = selectedSubscriber.plan_interest || 'starter';
+    const period = document.querySelector('#subscriberPeriod');
+    period.innerHTML = plan === 'starter'
+      ? '<option value="monthly">Monthly</option>'
+      : '<option value="weekly">Weekly</option><option value="monthly">Monthly</option>';
+    document.querySelector('#subscriberProfile').innerHTML = `
+      <div class="item"><strong>${escapeHtml(selectedSubscriber.email)}</strong>
+        <div class="meta">Plan: ${escapeHtml(plan)}</div>
+        <div class="meta">Interests: ${escapeHtml((selectedSubscriber.interests || []).join(', ') || 'Not selected')}</div>
+        <div class="meta">Last report: ${formatDate(selectedSubscriber.last_report_at) || 'Never'} · Next due: ${formatDate(selectedSubscriber.next_report_due) || 'Not scheduled'}</div>
+      </div>`;
+    document.querySelector('#subscriberDetail').classList.add('open');
+    document.querySelectorAll('.subscriber-item').forEach((button) => button.classList.toggle('selected', button.dataset.subscriberEmail === email));
+    document.querySelector('#subscriberDetail').scrollIntoView({ behavior:'smooth', block:'center' });
+  }
+
+  async function generateSubscriberPdf() {
+    if (!selectedSubscriber) {
+      setStatus('Choose a subscriber first.', 'error');
+      return;
+    }
+    const period = document.querySelector('#subscriberPeriod').value;
+    await action('/api/reports/pdf', { subscriberEmail: selectedSubscriber.email, period, prepareLatest: true }, (data) => {
+      setStatus(`${selectedSubscriber.email}: ${data.plan} / ${data.period} PDF created for ${data.categories.join(', ')}.`, 'success');
+      window.open(data.url, '_blank');
+      loadOverview({ preserveStatus: true });
+    });
+  }
+
+  function getToken() {
+    const token = tokenInput.value.trim();
+    if (!token) {
+      setStatus('Enter ADMIN_TOKEN from your .env file.', 'error');
+      return '';
+    }
+    localStorage.setItem('gripetogold_admin_token', token);
+    return token;
+  }
+
+  function renderList(selector, items, template) {
+    const el = document.querySelector(selector);
+    el.innerHTML = items.length ? items.map(template).join('') : '<div class="meta">No records yet.</div>';
+  }
+
+  function renderStats(stats) {
+    const platformCounts = stats.platformCounts || {};
+    const topPlatform = Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0];
+    const categoryCounts = stats.categoryCounts || {};
+    const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
+    document.querySelector('#stats').innerHTML = `
+      <div class="stat"><strong>${stats.totalRawSignals ?? stats.shownRawSignals ?? 0}</strong><span>Total raw signals</span></div>
+      <div class="stat"><strong>${stats.totalDrafts ?? stats.shownDrafts ?? 0}</strong><span>Opportunity drafts</span></div>
+      <div class="stat"><strong>${escapeHtml(topPlatform ? topPlatform[0] : '-')}</strong><span>Top source</span></div>
+      <div class="stat"><strong>${escapeHtml(topCategory ? topCategory[0] : '-')}</strong><span>Top category</span></div>
+      <div class="stat"><strong>${stats.queuedEmails ?? 0}</strong><span>Email queue</span></div>
+      <div class="stat"><strong>${stats.queuedSlackMessages ?? 0}</strong><span>Slack queue</span></div>
+      <div class="stat"><strong>${stats.packageRuns ?? 0}</strong><span>Package runs</span></div>
+      <div class="stat"><strong>${stats.totalWaitlist ?? stats.shownWaitlist ?? 0}</strong><span>Email signups</span></div>
+    `;
+  }
+
+  function setStatus(message, type = '') {
+    statusEl.className = `status ${type}`;
+    statusEl.textContent = message;
+  }
+
+  function setButtons(disabled) {
+    document.querySelectorAll('button').forEach((button) => {
+      button.disabled = disabled;
+    });
+  }
+
+  function formatDate(value) {
+    return value ? new Date(value).toLocaleString() : '';
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#039;'
+    }[char]));
+  }
+
+  function encodeToken(value) {
+    const bytes = new TextEncoder().encode(value);
+    let binary = '';
+    bytes.forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  }
+
+  selectPackage('starter');
+  if (savedToken) loadOverview();
+</script>
+</body>
+</html>
