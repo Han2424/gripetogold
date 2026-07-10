@@ -46,6 +46,9 @@
   }
   .nav-logo { font-weight: 900; font-size: 18px; letter-spacing: -0.5px; }
   .nav-logo span { color: var(--red); }
+  .nav-actions { display:flex; align-items:center; gap:18px; }
+  .nav-link { color:var(--gray); font-size:13px; font-weight:700; }
+  .nav-link:hover { color:var(--white); }
   .nav-cta {
     background: var(--red); color: #fff;
     padding: 9px 22px; border-radius: 6px;
@@ -370,7 +373,10 @@
 
 <nav>
   <div class="nav-logo">Gripe<span>To</span>Gold</div>
-  <a href="#free-report" class="nav-cta">Get Free PDF</a>
+  <div class="nav-actions">
+    <a href="trends.html" class="nav-link">Past Trends</a>
+    <a href="#free-report" class="nav-cta">Get Free PDF</a>
+  </div>
 </nav>
 
 <section class="hero" id="free-report">
@@ -379,7 +385,7 @@
     Weekly pulse + monthly intelligence report
   </div>
   <h1>Stop Guessing.<br/>Build What People Are<br/><em>Already Asking For.</em></h1>
-  <p class="hero-sub">Every week we scan Hacker News discussions, public GitHub issues, and Stack Exchange questions, then turn repeated complaints into practical startup opportunities. The monthly PDF gives you the clean, curated version.</p>
+  <p class="hero-sub">Every week we scan Reddit, Hacker News, public GitHub issues, and Stack Exchange questions, then turn repeated complaints into practical startup opportunities. Authorized X and G2 feeds are added when their access credentials are configured.</p>
   <form class="signup-box js-waitlist-form" data-plan-interest="free_pdf">
     <input type="email" name="email" placeholder="Enter your email for the first PDF free" aria-label="Email address" required/>
     <button class="btn-primary" type="submit">Send Me The Free PDF</button>
@@ -390,18 +396,16 @@
 
 <div class="ticker-wrap">
   <div class="ticker">
-    <span class="ticker-item">Etsy bulk order friction -> <strong>420+ relevant mentions tracked</strong></span>
-    <span class="ticker-item">Freelance invoice follow-up stress -> <strong>610+ relevant mentions</strong></span>
-    <span class="ticker-item">UGC photo alternatives -> <strong>390+ relevant mentions</strong></span>
-    <span class="ticker-item">WooCommerce cart recovery issues -> <strong>280+ relevant mentions</strong></span>
-    <span class="ticker-item">Multi-Stripe MRR reporting -> <strong>140+ relevant mentions</strong></span>
-    <span class="ticker-item">Loom alternative complaints -> <strong>530+ relevant mentions</strong></span>
-    <span class="ticker-item">Etsy bulk order friction -> <strong>420+ relevant mentions tracked</strong></span>
-    <span class="ticker-item">Freelance invoice follow-up stress -> <strong>610+ relevant mentions</strong></span>
-    <span class="ticker-item">UGC photo alternatives -> <strong>390+ relevant mentions</strong></span>
-    <span class="ticker-item">WooCommerce cart recovery issues -> <strong>280+ relevant mentions</strong></span>
-    <span class="ticker-item">Multi-Stripe MRR reporting -> <strong>140+ relevant mentions</strong></span>
-    <span class="ticker-item">Loom alternative complaints -> <strong>530+ relevant mentions</strong></span>
+    <span class="ticker-item">Qualification gate -> <strong>50 relevant, deduplicated sources</strong></span>
+    <span class="ticker-item">Source audit -> <strong>Every accepted signal keeps its URL</strong></span>
+    <span class="ticker-item">Trend comparison -> <strong>Current window vs previous window</strong></span>
+    <span class="ticker-item">Public proof -> <strong>Predictions timestamped before evaluation</strong></span>
+    <span class="ticker-item">Human review -> <strong>No opportunity ships from volume alone</strong></span>
+    <span class="ticker-item">Qualification gate -> <strong>50 relevant, deduplicated sources</strong></span>
+    <span class="ticker-item">Source audit -> <strong>Every accepted signal keeps its URL</strong></span>
+    <span class="ticker-item">Trend comparison -> <strong>Current window vs previous window</strong></span>
+    <span class="ticker-item">Public proof -> <strong>Predictions timestamped before evaluation</strong></span>
+    <span class="ticker-item">Human review -> <strong>No opportunity ships from volume alone</strong></span>
   </div>
 </div>
 
@@ -470,7 +474,7 @@
         <div class="step-num">01 -</div>
         <div>
           <h3>Focused public sources are scanned every week</h3>
-          <p>We scan Hacker News discussions, public GitHub issues, and Stack Exchange questions where users describe real workflow friction in their own words.</p>
+          <p>Reddit, Hacker News, public GitHub issues, and Stack Exchange are collected directly. X uses the official API and G2 uses an authorized export/feed when credentials are configured.</p>
         </div>
       </div>
       <div class="step">
@@ -620,7 +624,7 @@
           Where does the data come from?
           <span class="arrow">+</span>
         </div>
-        <div class="faq-a">The active collector uses Hacker News, public GitHub issues, and Stack Exchange. New sources are added only when their platform rules allow this use.</div>
+        <div class="faq-a">The active collector uses Reddit, Hacker News, public GitHub issues, and Stack Exchange. X is supported through its official API, and G2 through an authorized export or licensed feed; those sources activate only when their credentials are configured.</div>
       </div>
 
       <div class="faq-item">
