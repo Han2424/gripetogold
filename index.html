@@ -699,14 +699,29 @@
       button.textContent = 'Saving...';
 
       try {
-        const response = await fetch('/api/waitlist', {
+        const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+        const endpoint = isLocal
+          ? '/api/waitlist'
+          : 'https://formsubmit.co/ajax/help.gripetogold@gmail.com';
+        const payload = isLocal
+          ? {
+              email,
+              source: 'landing_page',
+              planInterest: form.dataset.planInterest || 'free_pdf'
+            }
+          : {
+              email,
+              source: 'GripeToGold landing page',
+              plan_interest: form.dataset.planInterest || 'free_pdf',
+              _subject: 'New GripeToGold signup',
+              _template: 'table',
+              _captcha: 'false'
+            };
+
+        const response = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            source: 'landing_page',
-            planInterest: form.dataset.planInterest || 'free_pdf'
-          })
+          body: JSON.stringify(payload)
         });
 
         const result = await response.json();
@@ -720,7 +735,9 @@
         form.reset();
       } catch (error) {
         status.className = 'signup-status error';
-        status.textContent = 'Could not reach the signup server. Open the site at http://127.0.0.1:5177 and keep npm run dev running.';
+        status.textContent = isLocal
+          ? 'Could not reach the local signup server. Run npm run dev and try again.'
+          : 'We could not save your email right now. Please try again in a moment.';
       } finally {
         button.disabled = false;
         button.textContent = originalText;
