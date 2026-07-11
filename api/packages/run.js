@@ -67,7 +67,7 @@ async function collectGithub(category, query) {
     id: `github_${item.id}`, platform: "github", category, query,
     title: clean(item.title), body: clean(item.body || item.title), source_url: item.html_url,
     score: Number(item.reactions?.total_count || 0), comment_count: Number(item.comments || 0),
-    posted_at: item.created_at, collected_at: new Date().toISOString()
+    posted_at: item.updated_at || item.created_at, collected_at: new Date().toISOString()
   }));
 }
 
@@ -78,7 +78,7 @@ async function collectStack(category, query) {
     id: `stack_${item.question_id}`, platform: "stackexchange", category, query,
     title: clean(item.title), body: clean(item.title), source_url: item.link,
     score: Number(item.score || 0), comment_count: Number(item.answer_count || 0),
-    posted_at: new Date(Number(item.creation_date || 0) * 1000).toISOString(), collected_at: new Date().toISOString()
+    posted_at: new Date(Number(item.last_activity_date || item.creation_date || 0) * 1000).toISOString(), collected_at: new Date().toISOString()
   }));
 }
 
@@ -103,6 +103,15 @@ function painScore(items) {
   const engagedShare = items.length ? items.filter((item) => item.score + item.comment_count > 0).length / items.length : 0;
   const recentShare = items.length ? items.filter((item) => Date.now() - new Date(item.posted_at || 0).getTime() < 90 * 86400000).length / items.length : 0;
   return Math.round(24 + Math.min(24, Math.log2(items.length + 1) * 5) + sourceDiversity * 4 + engagedShare * 18 + recentShare * 12 + Math.min(10, Math.log10(engagement + 1) * 3));
+}
+
+function withinPeriod(items, period) {
+  const days = period === "weekly" ? 8 : 35;
+  const cutoff = Date.now() - days * 86400000;
+  return items.filter((item) => {
+    const timestamp = new Date(item.posted_at || 0).getTime();
+    return Number.isFinite(timestamp) && timestamp >= cutoff;
+  });
 }
 
 function narrative(topic, category, items) {
@@ -171,9 +180,13 @@ export default async function handler(req, res) {
     const unique = new Map();
     results.flatMap((result) => result.items).forEach((item) => unique.set(item.id, item));
     const rawItems = [...unique.values()];
-    const drafts = config.periods.flatMap((period) => results
-      .filter((result) => result.items.length >= 3)
-      .map((result) => makeDraft(result.category, result.topic, result.items, result.raw.length, period)));
+    const drafts = config.periods.flatMap((period) => results.flatMap((result) => {
+      const periodItems = withinPeriod(result.items, period);
+      const periodRaw = withinPeriod(result.raw, period);
+      return periodItems.length >= 3
+        ? [makeDraft(result.category, result.topic, periodItems, periodRaw.length, period)]
+        : [];
+    }));
     const errors = results.flatMap((result) => result.errors);
 
     const { data } = await readStore();
@@ -198,7 +211,14 @@ export default async function handler(req, res) {
 
     return sendJson(res, 200, {
       ok: true, run, errors,
-      diagnostics: results.map((result) => ({ category: result.category, topic: result.topic.label, raw: result.raw.length, uniqueRelevant: result.items.length }))
+      diagnostics: results.map((result) => ({
+        category: result.category,
+        topic: result.topic.label,
+        raw: result.raw.length,
+        uniqueRelevant: result.items.length,
+        weeklyRelevant: withinPeriod(result.items, "weekly").length,
+        monthlyRelevant: withinPeriod(result.items, "monthly").length
+      }))
     });
   } catch (error) {
     return sendJson(res, 500, { error: error.message || "Could not scan sources." });
