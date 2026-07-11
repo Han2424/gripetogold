@@ -128,13 +128,6 @@
     outline: none;
   }
   .signup-box input:focus { border-color: var(--red-dim); }
-  .signup-preferences { grid-column: 1 / -1; border-top: 1px solid var(--border); padding: 12px 4px 2px; text-align:left; }
-  .signup-preferences strong { display:block; font-size:13px; margin-bottom:8px; }
-  .interest-grid { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
-  .interest-option { display:flex; align-items:center; gap:6px; padding:7px 9px; border:1px solid var(--border); border-radius:7px; color:var(--gray); font-size:12px; cursor:pointer; }
-  .interest-option input { width:auto; padding:0; accent-color:var(--red); }
-  .signup-preferences select { width:100%; background:var(--black); border:1px solid var(--border); border-radius:8px; color:var(--white); padding:11px 12px; }
-  .preference-note { display:block; color:var(--gray-light); font-size:11px; margin-top:8px; }
   .signup-status {
     min-height: 20px;
     color: var(--gray);
@@ -396,20 +389,6 @@
   <form class="signup-box js-waitlist-form" data-plan-interest="free_pdf">
     <input type="email" name="email" placeholder="Enter your email for the first PDF free" aria-label="Email address" required/>
     <button class="btn-primary" type="submit">Send Me The Free PDF</button>
-    <div class="signup-preferences">
-      <strong>Choose up to 3 interests</strong>
-      <div class="interest-grid">
-        <label class="interest-option"><input type="checkbox" name="interests" value="SaaS"/> SaaS</label>
-        <label class="interest-option"><input type="checkbox" name="interests" value="E-Commerce"/> E-Commerce</label>
-        <label class="interest-option"><input type="checkbox" name="interests" value="Creator Tools"/> Creator Tools</label>
-      </div>
-      <select name="plan" aria-label="Report plan">
-        <option value="starter">Starter — monthly</option>
-        <option value="growth">Growth — weekly + monthly</option>
-        <option value="team">Team — weekly + monthly</option>
-      </select>
-      <span class="preference-note">Your report will prioritize these interests. You can change them later.</span>
-    </div>
   </form>
   <div class="signup-status" role="status" aria-live="polite"></div>
   <span class="hero-note">First month free - Weekly mini reports on Growth+ - Monthly PDF delivered by email</span>
@@ -690,20 +669,6 @@
     <form class="signup-box js-waitlist-form" data-plan-interest="free_pdf_footer" style="margin-left:auto;margin-right:auto;">
       <input type="email" name="email" placeholder="Enter your email" aria-label="Email address" required/>
       <button class="btn-primary" type="submit">Get Free PDF</button>
-      <div class="signup-preferences">
-        <strong>Choose up to 3 interests</strong>
-        <div class="interest-grid">
-          <label class="interest-option"><input type="checkbox" name="interests" value="SaaS"/> SaaS</label>
-          <label class="interest-option"><input type="checkbox" name="interests" value="E-Commerce"/> E-Commerce</label>
-          <label class="interest-option"><input type="checkbox" name="interests" value="Creator Tools"/> Creator Tools</label>
-        </div>
-        <select name="plan" aria-label="Report plan">
-          <option value="starter">Starter — monthly</option>
-          <option value="growth">Growth — weekly + monthly</option>
-          <option value="team">Team — weekly + monthly</option>
-        </select>
-        <span class="preference-note">Your report will prioritize these interests.</span>
-      </div>
     </form>
     <div class="signup-status" role="status" aria-live="polite"></div>
   </div>
@@ -724,32 +689,14 @@
   }
 
   document.querySelectorAll('.js-waitlist-form').forEach((form) => {
-    const interestInputs = [...form.querySelectorAll('input[name="interests"]')];
-    interestInputs.forEach((input) => {
-      input.addEventListener('change', () => {
-        const selectedCount = interestInputs.filter((item) => item.checked).length;
-        interestInputs.forEach((item) => {
-          item.disabled = !item.checked && selectedCount >= 3;
-        });
-      });
-    });
-
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
       const status = form.nextElementSibling;
       const button = form.querySelector('button[type="submit"]');
       const email = form.email.value.trim();
-      const interests = interestInputs.filter((input) => input.checked).map((input) => input.value);
-      const plan = form.plan.value;
       const originalText = button.textContent;
       const isLocal = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-
-      if (!interests.length) {
-        status.className = 'signup-status error';
-        status.textContent = 'Choose at least one interest.';
-        return;
-      }
 
       status.className = 'signup-status';
       status.textContent = 'Saving your email...';
@@ -764,14 +711,12 @@
           ? {
               email,
               source: 'landing_page',
-              plan,
-              interests
+              planInterest: form.dataset.planInterest || 'free_pdf'
             }
           : {
               email,
               source: 'GripeToGold landing page',
-              plan_interest: plan,
-              interests: interests.join(', '),
+              plan_interest: form.dataset.planInterest || 'free_pdf',
               _subject: 'New GripeToGold signup',
               _template: 'table',
               _captcha: 'false'
@@ -792,7 +737,6 @@
         status.className = 'signup-status success';
         status.textContent = result.message || "You're on the list.";
         form.reset();
-        interestInputs.forEach((item) => { item.disabled = false; });
       } catch (error) {
         status.className = 'signup-status error';
         status.textContent = isLocal
