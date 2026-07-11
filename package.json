@@ -12,6 +12,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@vercel/blob": "^2.3.0"
+    "@vercel/blob": "^2.3.0",
+    "pdfkit": "^0.19.1"
   }
 }

@@ -400,10 +400,35 @@
   async function generatePdf() {
     const plan = pdfPlan.value;
     const period = pdfPeriod.value;
-    await action('/api/reports/pdf', { plan, period }, (data) => {
-      setStatus(`${data.plan} / ${data.period} PDF created.`, 'success');
-      window.open(data.url, '_blank');
-    });
+    const token = getToken();
+    if (!token) return;
+    setStatus('Creating PDF...');
+    setButtons(true);
+    try {
+      const response = await fetch(apiUrl('/api/reports/pdf'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token-b64': encodeToken(token) },
+        body: JSON.stringify({ plan, period })
+      });
+      if (!response.ok) {
+        const data = await readJsonResponse(response);
+        throw new Error(data.error || 'Could not create PDF.');
+      }
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/pdf')) {
+        const pdfUrl = URL.createObjectURL(await response.blob());
+        window.open(pdfUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(pdfUrl), 60000);
+      } else {
+        const data = await readJsonResponse(response);
+        window.open(data.url, '_blank');
+      }
+      setStatus(`${plan} / ${period} PDF created.`, 'success');
+    } catch (error) {
+      setStatus(error.message, 'error');
+    } finally {
+      setButtons(false);
+    }
   }
 
   async function saveTeamSettings() {
