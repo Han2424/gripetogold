@@ -3,10 +3,11 @@ import { readStore } from "../../lib/blob-store.js";
 import { readJsonBody, requireAdmin, sendJson, setCors } from "../../lib/http.js";
 
 const PLANS = {
-  starter: { label: "Starter", periods: ["monthly"] },
-  growth: { label: "Growth", periods: ["weekly", "monthly"] },
-  team: { label: "Team", periods: ["weekly", "monthly"] }
+  starter: { label: "Starter", periods: ["monthly"], categories: ["SaaS", "E-Commerce"] },
+  growth: { label: "Growth", periods: ["weekly", "monthly"], categories: ["SaaS", "E-Commerce", "Creator Tools"] },
+  team: { label: "Team", periods: ["weekly", "monthly"], categories: ["SaaS", "E-Commerce", "Creator Tools"] }
 };
+const MIN_RELEVANCE_THRESHOLD = Math.max(0, Math.min(100, Number(process.env.MIN_RELEVANCE_THRESHOLD || 50)));
 
 const C = { navy: "#101827", ink: "#182230", muted: "#667085", cream: "#F7F3EA", paper: "#FFFCF6", gold: "#B68A3A", paleGold: "#E8D8B6", line: "#DED6C7", white: "#FFFFFF", green: "#27735D" };
 
@@ -28,9 +29,9 @@ function label(doc, text, x, y, width = 150) {
 }
 
 function metric(doc, x, y, value, caption) {
-  doc.save().roundedRect(x, y, 132, 64, 7).fill(C.paper).lineWidth(0.7).stroke(C.line).restore();
-  doc.font("Helvetica-Bold").fontSize(21).fillColor(C.navy).text(String(value), x + 14, y + 11, { width: 104 });
-  doc.font("Helvetica").fontSize(8).fillColor(C.muted).text(caption.toUpperCase(), x + 14, y + 39, { width: 104, characterSpacing: 0.5 });
+  doc.save().roundedRect(x, y, 112, 64, 7).fill(C.paper).lineWidth(0.7).stroke(C.line).restore();
+  doc.font("Helvetica-Bold").fontSize(19).fillColor(C.navy).text(String(value), x + 11, y + 11, { width: 90 });
+  doc.font("Helvetica").fontSize(7.2).fillColor(C.muted).text(caption.toUpperCase(), x + 11, y + 39, { width: 90, characterSpacing: 0.35 });
 }
 
 function section(doc, title, body, y) {
@@ -48,9 +49,10 @@ function addOpportunity(doc, draft, index) {
   doc.save().moveTo(58, doc.y + 13).lineTo(537, doc.y + 13).lineWidth(1).stroke(C.gold).restore();
 
   const metricsY = doc.y + 35;
-  metric(doc, 58, metricsY, Number(draft.mention_count || 0), "Unique matched mentions");
-  metric(doc, 205, metricsY, Number(draft.pain_score || 0), "Pain score / 100");
-  metric(doc, 352, metricsY, `${Number(draft.relevance_score || 0)}%`, "Query relevance");
+  metric(doc, 58, metricsY, Number(draft.mention_count || 0), "Unique mentions");
+  metric(doc, 179, metricsY, Number(draft.pain_score || 0), "Pain / 100");
+  metric(doc, 300, metricsY, `${Number(draft.relevance_score || 0)}%`, "Relevance");
+  metric(doc, 421, metricsY, Number(draft.adjusted_score || 0).toFixed(1), "Adjusted score");
 
   let y = metricsY + 88;
   y = section(doc, "Observed problem", draft.problem_summary || draft.summary, y);
@@ -99,8 +101,15 @@ export default async function handler(req, res) {
     if (!config.periods.includes(period)) return sendJson(res, 400, { error: "Starter only includes a monthly PDF." });
 
     const { data } = await readStore();
-    const drafts = (data.report_drafts || []).filter((draft) => !draft.period || draft.period === period)
-      .sort((a, b) => Number(b.pain_score || 0) - Number(a.pain_score || 0)).slice(0, 12);
+    const drafts = (data.report_drafts || [])
+      .filter((draft) => (!draft.period || draft.period === period)
+        && config.categories.includes(draft.category)
+        && Number(draft.relevance_score || 0) >= MIN_RELEVANCE_THRESHOLD)
+      .map((draft) => ({
+        ...draft,
+        adjusted_score: Number(draft.adjusted_score ?? (Number(draft.pain_score || 0) * (Number(draft.relevance_score || 0) / 100)))
+      }))
+      .sort((a, b) => Number(b.adjusted_score || 0) - Number(a.adjusted_score || 0)).slice(0, 12);
     const platforms = [...new Set(drafts.flatMap((draft) => (draft.source_details || []).map((source) => source.platform)).filter(Boolean))];
 
     const doc = new PDFDocument({ size: "A4", margin: 0, bufferPages: true, info: { Title: `GripeToGold ${config.label} Opportunity Report`, Author: "GripeToGold" } });
@@ -121,7 +130,7 @@ export default async function handler(req, res) {
     doc.font("Helvetica-Bold").fontSize(18).fillColor(C.white).text(platforms.length ? String(platforms.length) : "-", 288, 484);
     doc.font("Helvetica").fontSize(8).fillColor(C.paleGold).text("PUBLIC SOURCE TYPES", 288, 520, { characterSpacing: 0.7 });
     doc.font("Helvetica").fontSize(9).fillColor("#CBD2DC").text(platforms.join(" / ") || "Run Scan & Prepare to collect evidence", 82, 548, { width: 420 });
-    doc.font("Helvetica").fontSize(9).fillColor("#98A2B3").text(`Generated ${new Date().toISOString().slice(0, 10)}  |  Mention counts are unique topic-matched records, not search-result totals.`, 61, 694, { width: 455, lineGap: 4 });
+    doc.font("Helvetica").fontSize(9).fillColor("#98A2B3").text(`Generated ${new Date().toISOString().slice(0, 10)}  |  Minimum relevance ${MIN_RELEVANCE_THRESHOLD}%  |  Ranked by adjusted score.`, 61, 694, { width: 455, lineGap: 4 });
 
     if (!drafts.length) {
       doc.font("Helvetica-Bold").fontSize(15).fillColor(C.white).text("No qualified opportunities yet", 61, 620);

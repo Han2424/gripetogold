@@ -8,20 +8,24 @@ const PLANS = {
   team: { label: "Team", categories: ["SaaS", "E-Commerce", "Creator Tools"], periods: ["weekly", "monthly"] }
 };
 
+const MIN_RELEVANCE_THRESHOLD = Math.max(0, Math.min(100, Number(process.env.MIN_RELEVANCE_THRESHOLD || 50)));
+const RELEVANCE_EVALUATOR = String(process.env.RELEVANCE_EVALUATOR || "rules").toLowerCase();
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+
 const QUERIES = {
   "SaaS": [
-    { key: "software-cost", query: "SaaS software too expensive", label: "SaaS price pressure", terms: ["expensive", "pricing", "price increase", "subscription cost", "cheaper"] },
-    { key: "manual-work", query: "manual repetitive software workflow", label: "Manual workflow automation", terms: ["manual", "repetitive", "copy paste", "spreadsheet", "automation"] },
-    { key: "billing", query: "billing invoicing payment reminder software", label: "Billing follow-up friction", terms: ["billing", "invoice", "payment reminder", "overdue", "receivable"] },
-    { key: "integration", query: "software integration sync problem", label: "Integration and sync failures", terms: ["integration", "sync", "data mismatch", "webhook", "connector"] },
-    { key: "onboarding", query: "software onboarding setup difficult", label: "Complex product onboarding", terms: ["onboarding", "setup", "configuration", "difficult", "learning curve"] }
+    { key: "software-cost", query: "\"software too expensive\"", label: "SaaS price pressure", terms: ["expensive", "pricing", "price increase", "subscription cost", "cheaper"] },
+    { key: "manual-work", query: "\"manual workflow\" automation", label: "Manual workflow automation", terms: ["manual", "workflow", "repetitive", "copy paste", "spreadsheet", "automation"] },
+    { key: "billing", query: "\"payment reminder\" invoice", label: "Billing follow-up friction", terms: ["billing", "invoice", "payment reminder", "overdue", "receivable"] },
+    { key: "integration", query: "\"sync failure\" integration", label: "Integration and sync failures", terms: ["integration", "sync failure", "data mismatch", "webhook", "connector"] },
+    { key: "onboarding", query: "\"onboarding setup\" software", label: "Complex product onboarding", terms: ["onboarding", "setup", "configuration", "difficult", "learning curve"] }
   ],
   "E-Commerce": [
-    { key: "checkout", query: "ecommerce checkout payment failed", label: "Checkout payment failures", terms: ["checkout", "payment failed", "payment error", "cart abandonment", "transaction"] },
-    { key: "inventory", query: "ecommerce inventory sync problem", label: "Inventory synchronization", terms: ["inventory", "stock sync", "product sync", "out of stock", "overselling"] },
-    { key: "shipping", query: "ecommerce shipping label workflow", label: "Shipping operations", terms: ["shipping", "shipping label", "fulfillment", "delivery", "carrier"] },
-    { key: "returns", query: "ecommerce returns refund workflow", label: "Returns and refunds", terms: ["return", "refund", "exchange", "reverse logistics", "return label"] },
-    { key: "catalog", query: "ecommerce product catalog management problem", label: "Catalog maintenance", terms: ["catalog", "product data", "variant", "listing", "product feed"] }
+    { key: "checkout", query: "\"payment failed\" checkout", label: "Checkout payment failures", terms: ["checkout", "payment failed", "payment error", "cart abandonment", "transaction"] },
+    { key: "inventory", query: "\"inventory sync\"", label: "Inventory synchronization", terms: ["inventory sync", "stock sync", "product sync", "out of stock", "overselling"] },
+    { key: "shipping", query: "\"shipping label\" workflow", label: "Shipping operations", terms: ["shipping label", "fulfillment", "delivery", "carrier"] },
+    { key: "returns", query: "\"return refund\" ecommerce", label: "Returns and refunds", terms: ["return", "refund", "exchange", "reverse logistics", "return label"] },
+    { key: "catalog", query: "\"product catalog\" ecommerce", label: "Catalog maintenance", terms: ["product catalog", "product data", "variant", "listing", "product feed"] }
   ],
   "Creator Tools": [
     { key: "editing", query: "video editing repetitive workflow", label: "Repetitive editing work", terms: ["video editing", "editing workflow", "render", "timeline", "repetitive"] },
@@ -30,6 +34,24 @@ const QUERIES = {
     { key: "transcription", query: "podcast transcription workflow problem", label: "Transcription cleanup", terms: ["transcription", "subtitle", "caption", "speaker", "transcript"] },
     { key: "feedback", query: "creator client feedback approval workflow", label: "Client review and approval", terms: ["feedback", "approval", "review", "revision", "client"] }
   ]
+};
+
+const EVIDENCE_TERMS = {
+  "software-cost": ["too expensive", "price increase", "subscription cost", "cheaper alternative", "pricing"],
+  "manual-work": ["manual workflow", "manual process", "repetitive workflow", "copy paste", "spreadsheet workflow"],
+  billing: ["invoice", "payment reminder", "overdue", "receivable", "dunning"],
+  integration: ["sync failure", "integration failure", "data mismatch", "webhook", "connector"],
+  onboarding: ["product onboarding", "user onboarding", "customer onboarding", "onboarding setup", "getting started"],
+  checkout: ["checkout", "payment failed", "payment error", "cart abandonment"],
+  inventory: ["inventory sync", "stock sync", "product sync", "overselling"],
+  shipping: ["shipping label", "shipping provider", "fulfillment", "carrier"],
+  returns: ["return", "refund", "exchange", "rma"],
+  catalog: ["product catalog", "product data", "product variant", "product feed"],
+  editing: ["video editing", "editing workflow", "render workflow", "timeline"],
+  cost: ["too expensive", "subscription cost", "creator pricing", "cheaper alternative"],
+  publishing: ["content publishing", "cross post", "publishing workflow", "social scheduling"],
+  transcription: ["transcription", "subtitle", "caption", "transcript"],
+  feedback: ["client feedback", "client approval", "revision", "review workflow"]
 };
 
 function clean(value) {
@@ -82,19 +104,106 @@ async function collectStack(category, query) {
   }));
 }
 
-function relevantItems(items, topic) {
+function uniqueItems(items) {
   const seen = new Set();
-  return items.map((item) => {
+  return items.filter((item) => {
     const identity = item.source_url || item.id;
-    if (!identity || seen.has(identity)) return null;
+    if (!identity || seen.has(identity)) return false;
     seen.add(identity);
-    const title = String(item.title || "").toLowerCase();
+    return true;
+  });
+}
+
+function ruleEvaluation(item, topic) {
+  const title = String(item.title || "").toLowerCase();
     const body = String(item.body || "").toLowerCase();
-    const titleMatches = topic.terms.filter((term) => title.includes(term));
-    const allMatches = topic.terms.filter((term) => title.includes(term) || body.includes(term));
-    if (!titleMatches.length && allMatches.length < 2) return null;
-    return { ...item, match_strength: titleMatches.length * 3 + allMatches.length };
-  }).filter(Boolean).sort((a, b) => (b.match_strength - a.match_strength) || ((b.score + b.comment_count) - (a.score + a.comment_count)));
+    const evidenceTerms = EVIDENCE_TERMS[topic.key] || topic.terms;
+    const titleMatches = evidenceTerms.filter((term) => title.includes(term));
+  const allMatches = topic.terms.filter((term) => title.includes(term) || body.includes(term));
+  const relevant = titleMatches.length > 0 || allMatches.length >= 3;
+  const confidence = titleMatches.length >= 2 ? 95
+    : titleMatches.length === 1 ? 85
+      : allMatches.length >= 4 ? 70
+        : allMatches.length === 3 ? 60 : 0;
+  const reason = relevant
+    ? `Matched ${titleMatches.length} title term(s) and ${allMatches.length} total topic term(s).`
+    : `Rejected: no title match and only ${allMatches.length} total topic term match(es); three body matches are required.`;
+  return { id: item.id, relevant, confidence, strong_evidence: titleMatches.length > 0, reason, match_strength: titleMatches.length * 5 + allMatches.length };
+}
+
+function responseText(payload) {
+  if (typeof payload.output_text === "string") return payload.output_text;
+  return (payload.output || []).flatMap((item) => item.content || []).map((content) => content.text || "").join("").trim();
+}
+
+async function openAiEvaluations(items, topic) {
+  const compactSources = items.map((item) => ({
+    id: item.id,
+    title: clean(item.title).slice(0, 240),
+    excerpt: clean(item.body).slice(0, 500),
+    platform: item.platform,
+    url: item.source_url
+  }));
+  const prompt = [
+    `Evaluate whether each public source is genuinely relevant to the opportunity topic "${topic.label}".`,
+    `Search intent: ${topic.query}. Expected concepts: ${topic.terms.join(", ")}.`,
+    "Return JSON only as an array of objects with id, relevant (boolean), confidence (0-100), and reason (one concise sentence).",
+    "Say no when a keyword is incidental, the product/domain is unrelated, or the source does not describe the target problem.",
+    "Sources:",
+    JSON.stringify(compactSources)
+  ].join("\n");
+  console.info("[relevance_prompt]", JSON.stringify({ evaluator: "openai", model: OPENAI_MODEL, topic: topic.label, prompt }));
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: OPENAI_MODEL, input: prompt })
+  });
+  const payload = await response.json();
+  if (!response.ok) throw new Error(payload.error?.message || `OpenAI relevance evaluation returned ${response.status}`);
+  const raw = responseText(payload);
+  const parsed = JSON.parse(raw.replace(/^```json\s*|\s*```$/g, ""));
+  const decisions = new Map((Array.isArray(parsed) ? parsed : []).map((item) => [String(item.id), item]));
+  const evaluations = items.map((item) => {
+    const decision = decisions.get(String(item.id));
+    return {
+      id: item.id,
+      relevant: decision?.relevant === true,
+      confidence: Math.max(0, Math.min(100, Number(decision?.confidence || (decision?.relevant === true ? 80 : 0)))),
+      strong_evidence: decision?.relevant === true,
+      reason: clean(decision?.reason || "The model returned no decision for this source."),
+      match_strength: decision?.relevant === true ? 10 : 0
+    };
+  });
+  evaluations.forEach((evaluation) => console.info("[relevance_response]", JSON.stringify({ evaluator: "openai", topic: topic.label, ...evaluation })));
+  return { evaluations, prompt, rawResponse: raw, evaluator: "openai" };
+}
+
+async function evaluateRelevance(items, topic) {
+  const unique = uniqueItems(items);
+  let evaluationResult;
+  if (RELEVANCE_EVALUATOR === "openai" && process.env.OPENAI_API_KEY) {
+    try {
+      evaluationResult = await openAiEvaluations(unique, topic);
+    } catch (error) {
+      console.error("[relevance_openai_fallback]", JSON.stringify({ topic: topic.label, error: error.message }));
+    }
+  }
+  if (!evaluationResult) {
+    const prompt = `Rule evaluator for ${topic.label}: accept a source when its title matches a topic term or its title/body matches at least three topic terms.`;
+    const evaluations = unique.map((item) => ruleEvaluation(item, topic));
+    console.info("[relevance_prompt]", JSON.stringify({ evaluator: "rules", topic: topic.label, prompt }));
+    evaluations.forEach((evaluation) => console.info("[relevance_response]", JSON.stringify({ evaluator: "rules", topic: topic.label, ...evaluation })));
+    evaluationResult = { evaluations, prompt, rawResponse: JSON.stringify(evaluations), evaluator: "rules" };
+  }
+  const byId = new Map(evaluationResult.evaluations.map((item) => [String(item.id), item]));
+  const relevant = unique.filter((item) => byId.get(String(item.id))?.relevant).map((item) => ({
+    ...item,
+    match_strength: Number(byId.get(String(item.id))?.match_strength || 0),
+    relevance_confidence: Number(byId.get(String(item.id))?.confidence || 0),
+    strong_evidence: byId.get(String(item.id))?.strong_evidence === true,
+    relevance_reason: byId.get(String(item.id))?.reason || ""
+  })).sort((a, b) => (b.match_strength - a.match_strength) || ((b.score + b.comment_count) - (a.score + a.comment_count)));
+  return { ...evaluationResult, items: relevant, evaluatedCount: unique.length };
 }
 
 function painScore(items) {
@@ -135,21 +244,48 @@ function narrative(topic, category, items) {
   return patterns[topic.key] || [`Public discussions show repeated friction around ${topic.label.toLowerCase()}.`, `Test a narrow ${category.toLowerCase()} workflow that resolves the repeated failure with measurable time savings.`];
 }
 
+function competitiveOpening(topic) {
+  const openings = {
+    "software-cost": "Incumbents bundle broad feature sets into rising subscriptions; the opening is a migration-friendly essential tier with a visibly lower total cost.",
+    "manual-work": "Generic automation platforms demand configuration expertise; win with a prebuilt workflow that proves hours saved during the first week.",
+    billing: "Accounting suites treat follow-up as a secondary feature; specialize in receivables communication, tone control, and overdue recovery for small teams.",
+    integration: "Connector catalogs compete on quantity, not recovery quality; differentiate with explainable sync failures, reconciliation, and guided repair.",
+    onboarding: "Most onboarding products add tours on top of complex setup; compete by removing configuration decisions and measuring time to first successful outcome.",
+    checkout: "Analytics tools show where buyers leave but rarely explain payment failure causes; own the merchant recovery workflow from diagnosis to retry.",
+    inventory: "Commerce suites expose stock counts but leave reconciliation to operators; focus on cross-channel conflicts, source-of-truth rules, and oversell prevention.",
+    shipping: "Shipping platforms optimize label volume; target small sellers with an exception-first workspace for failed labels, address fixes, and carrier changes.",
+    returns: "Return portals optimize customer intake while operational exceptions remain fragmented; differentiate with eligibility automation and one accountable queue.",
+    catalog: "PIM platforms are oversized for smaller merchants; offer continuous catalog quality checks and approval-based corrections across a few key channels.",
+    editing: "Full editing suites compete on creative breadth; own the repetitive edit-to-export steps that creators perform identically on every project.",
+    cost: "Creator incumbents monetize feature abundance; counter with a single-purpose tool, immediate import, and pricing aligned to projects rather than seats.",
+    publishing: "Schedulers stop at posting; differentiate by adapting one asset to channel constraints and preserving a human approval checkpoint.",
+    transcription: "Commodity transcription competes on raw accuracy; focus on the expensive cleanup layer: speakers, terminology, captions, and publish-ready review.",
+    feedback: "Project tools separate comments from media context; win with timestamp-native revisions and an explicit path from feedback to final approval."
+  };
+  return openings[topic.key] || `Compete on a narrowly defined ${topic.label.toLowerCase()} outcome with evidence-backed positioning and measurable time-to-value.`;
+}
+
 function makeDraft(category, topic, items, rawCount, period) {
   const [problem, angle] = narrative(topic, category, items);
-  const sources = items.slice(0, 8);
+  const strongSources = items.filter((item) => item.strong_evidence === true);
+  const sources = strongSources.slice(0, 8);
   const platforms = [...new Set(items.map((item) => item.platform))];
+  const pain = painScore(items);
+  const relevance = Math.round(items.reduce((sum, item) => sum + Number(item.relevance_confidence || 0), 0) / Math.max(1, items.length));
+  const searchCoverage = Math.round((items.length / Math.max(1, rawCount)) * 100);
   return {
     id: randomUUID(), draft_key: `${period}:${category}:${topic.key}`, period, category,
     title: `${category}: ${topic.label}`,
     problem_summary: `${problem} This report observed ${items.length} unique, topic-matched discussions across ${platforms.join(", ")}.`,
     opportunity_angle: angle,
-    competitor_gap_summary: `The defensible opening is not another broad platform: validate the narrow ${topic.label.toLowerCase()} workflow against the linked source evidence and compete on time-to-value.`,
-    pain_score: painScore(items),
-    relevance_score: Math.round((items.length / Math.max(1, rawCount)) * 100),
+    competitor_gap_summary: competitiveOpening(topic),
+    pain_score: pain,
+    relevance_score: relevance,
+    search_coverage_score: searchCoverage,
+    adjusted_score: Number((pain * (relevance / 100)).toFixed(2)),
     mention_count: items.length, current_period_mentions: items.length, previous_mention_count: 0,
     trend_direction: "new signal", source_urls: sources.map((item) => item.source_url),
-    source_details: sources.map((item) => ({ title: item.title, url: item.source_url, platform: item.platform })),
+    source_details: sources.map((item) => ({ title: item.title, url: item.source_url, platform: item.platform, relevance_confidence: item.relevance_confidence, relevance_reason: item.relevance_reason })),
     status: "draft", created_at: new Date().toISOString(), updated_at: new Date().toISOString()
   };
 }
@@ -170,9 +306,11 @@ export default async function handler(req, res) {
     const results = await Promise.all(jobs.map(async ({ category, topic }) => {
       const settled = await Promise.allSettled([collectHn(category, topic.query), collectGithub(category, topic.query), collectStack(category, topic.query)]);
       const raw = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+      const relevance = await evaluateRelevance(raw, topic);
       return {
         category, topic, raw,
-        items: relevantItems(raw, topic),
+        items: relevance.items,
+        relevance,
         errors: settled.filter((result) => result.status === "rejected").map((result) => result.reason?.message || "Source failed")
       };
     }));
@@ -180,13 +318,17 @@ export default async function handler(req, res) {
     const unique = new Map();
     results.flatMap((result) => result.items).forEach((item) => unique.set(item.id, item));
     const rawItems = [...unique.values()];
-    const drafts = config.periods.flatMap((period) => results.flatMap((result) => {
+    const candidateDrafts = config.periods.flatMap((period) => results.flatMap((result) => {
       const periodItems = withinPeriod(result.items, period);
       const periodRaw = withinPeriod(result.raw, period);
       return periodItems.length >= 3
         ? [makeDraft(result.category, result.topic, periodItems, periodRaw.length, period)]
         : [];
     }));
+    const drafts = candidateDrafts
+      .filter((draft) => draft.relevance_score >= MIN_RELEVANCE_THRESHOLD && draft.source_details.length >= 2)
+      .sort((a, b) => b.adjusted_score - a.adjusted_score);
+    const filteredLowRelevance = candidateDrafts.length - drafts.length;
     const errors = results.flatMap((result) => result.errors);
 
     const { data } = await readStore();
@@ -200,9 +342,26 @@ export default async function handler(req, res) {
       ...(data.report_drafts || []).filter((draft) => !refreshedCategories.has(draft.category) || !refreshedPeriods.has(draft.period))
     ].slice(0, 200);
     data.package_runs = Array.isArray(data.package_runs) ? data.package_runs : [];
+    data.relevance_logs = Array.isArray(data.relevance_logs) ? data.relevance_logs : [];
+    const relevanceLogs = results.map((result) => ({
+      id: randomUUID(),
+      category: result.category,
+      topic: result.topic.label,
+      query: result.topic.query,
+      evaluator: result.relevance.evaluator,
+      prompt: result.relevance.prompt,
+      response: result.relevance.rawResponse,
+      evaluated_count: result.relevance.evaluatedCount,
+      relevant_count: result.items.length,
+      created_at: new Date().toISOString()
+    }));
+    data.relevance_logs = [...relevanceLogs, ...data.relevance_logs].slice(0, 200);
     const run = {
       id: randomUUID(), plan, plan_label: config.label, periods: config.periods,
       collected: rawItems.length, drafts_created: drafts.length, source_errors: errors.length,
+      filtered_low_relevance: filteredLowRelevance,
+      min_relevance_threshold: MIN_RELEVANCE_THRESHOLD,
+      relevance_evaluator: relevanceLogs[0]?.evaluator || "rules",
       completed_at: new Date().toISOString()
     };
     data.package_runs.unshift(run);

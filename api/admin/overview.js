@@ -41,6 +41,7 @@ export default async function handler(req, res) {
         source: source || "landing_page"
       })),
       drafts: latest(data.report_drafts, "created_at", LIMIT),
+      relevanceLogs: latest(data.relevance_logs, "created_at", 30),
       rawItems: latest(data.raw_items, "collected_at", LIMIT)
     });
   } catch (error) {

@@ -154,8 +154,17 @@ Optional authorized sources:
 - X/Twitter recent search via the official API (`X_BEARER_TOKEN`)
 - G2 review data through an authorized export or licensed JSON feed (`G2_FEED_URL`)
 
-An opportunity must have at least 50 relevant, deduplicated source items and a 60% semantic relevance ratio before it becomes a qualified draft.
+An opportunity must meet `MIN_RELEVANCE_THRESHOLD` (default `50`) before it enters the main report. `relevance_score` is the average source-level relevance confidence for included evidence; noisy-search coverage is retained separately as `search_coverage_score`. Main-report ordering uses `adjusted_score = pain_score * (relevance_score / 100)` rather than raw pain alone.
 Missing optional credentials do not create fake data or fail the rest of a collection run.
+
+Relevance configuration:
+
+```text
+MIN_RELEVANCE_THRESHOLD=50
+RELEVANCE_EVALUATOR=rules
+```
+
+Set `RELEVANCE_EVALUATOR=openai`, `OPENAI_API_KEY`, and optionally `OPENAI_MODEL` to evaluate each source with the OpenAI Responses API. Both modes write prompt/decision diagnostics to Vercel logs and retain recent evaluation batches in the private Blob store.
 
 ## Public trend history
 
@@ -183,6 +192,6 @@ public.opportunity_drafts
 
 - Reddit, X, and G2 remain inactive until their official/authorized credentials are configured.
 - GitHub unauthenticated search has rate limits. Add a token later if volume grows.
-- Draft generation and AI scoring are heuristic for now. Add OpenAI scoring later for stronger analysis.
+- Relevance scoring defaults to deterministic rules; OpenAI evaluation is optional and requires the environment variables above.
 - Email sending uses Resend when `RESEND_API_KEY` and a verified `REPORT_FROM_EMAIL` are configured; otherwise it stays in the local queue.
 - Slack sends only when `SLACK_WEBHOOK_URL` is configured.

@@ -478,7 +478,7 @@
       renderList('#drafts', data.drafts, (item) => `
         <div class="item">
           <strong>${escapeHtml(item.title)}</strong>
-          <div class="meta">${escapeHtml(item.period)} - ${escapeHtml(item.category)} - score ${item.pain_score} - relevance ${item.relevance_score ?? 0}% - ${item.mention_count} relevant sources</div>
+          <div class="meta">${escapeHtml(item.period)} - ${escapeHtml(item.category)} - pain ${item.pain_score} - relevance ${item.relevance_score ?? 0}% - adjusted ${Number(item.adjusted_score ?? ((item.pain_score || 0) * ((item.relevance_score || 0) / 100))).toFixed(1)} - coverage ${item.search_coverage_score ?? 0}% - ${item.mention_count} relevant sources</div>
           <div class="meta">trend ${escapeHtml(item.trend_direction || 'not enough history')} - ${item.current_period_mentions ?? item.mention_count ?? 0} now vs ${item.previous_mention_count ?? 0} before</div>
         </div>
       `);
