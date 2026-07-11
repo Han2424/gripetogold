@@ -261,19 +261,19 @@
       <article class="package-row" data-plan="starter">
         <div class="package-title"><strong>Starter</strong><span>$2 / month</span></div>
         <div class="package-features"><b>Monthly:</b> SaaS + E-Commerce scan, complaint volume, source pattern notes, opportunity scores and monthly draft.</div>
-        <button class="package-run" data-plan="starter">Select Starter</button>
+        <button class="package-run" data-plan="starter">Scan & Prepare Starter</button>
       </article>
 
       <article class="package-row" data-plan="growth">
         <div class="package-title"><strong>Growth</strong><span>$9 / month</span></div>
         <div class="package-features"><b>Weekly + monthly:</b> Everything in Starter, Creator Tools, trend direction, competitor gaps, email draft and priority feedback queue.</div>
-        <button class="package-run" data-plan="growth">Select Growth</button>
+        <button class="package-run" data-plan="growth">Scan & Prepare Growth</button>
       </article>
 
       <article class="package-row" data-plan="team">
         <div class="package-title"><strong>Team</strong><span>$20 / month</span></div>
         <div class="package-features"><b>Weekly + monthly:</b> Everything in Growth, custom filters, raw data API, up to 5 members and Slack delivery.</div>
-        <button class="package-run" data-plan="team">Select Team</button>
+        <button class="package-run" data-plan="team">Scan & Prepare Team</button>
       </article>
     </div>
     <div id="status" class="status"></div>
@@ -373,11 +373,16 @@
   document.querySelector('#saveTeam').addEventListener('click', () => saveTeamSettings());
   document.querySelector('#refresh').addEventListener('click', () => loadOverview());
 
-  function preparePackage(plan) {
+  async function preparePackage(plan) {
     selectPackage(plan);
     const label = plan.charAt(0).toUpperCase() + plan.slice(1);
-    setStatus(`${label} selected. Choose the report period below, then create the PDF.`, 'success');
-    document.querySelector('#pdfBuilder').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await action('/api/packages/run', { plan }, (data) => {
+      const run = data.run;
+      const warning = run.source_errors ? ` ${run.source_errors} source request(s) failed; successful sources were still saved.` : '';
+      setStatus(`${label} ready: ${run.collected} signals scanned and ${run.drafts_created} report opportunities prepared.${warning}`, 'success');
+      loadOverview({ preserveStatus: true });
+      document.querySelector('#pdfBuilder').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   function selectPackage(plan) {
