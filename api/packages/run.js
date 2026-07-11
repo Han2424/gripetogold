@@ -18,21 +18,24 @@ const QUERIES = {
     { key: "manual-work", query: "\"manual workflow\" automation", label: "Manual workflow automation", terms: ["manual", "workflow", "repetitive", "copy paste", "spreadsheet", "automation"] },
     { key: "billing", query: "\"payment reminder\" invoice", label: "Billing follow-up friction", terms: ["billing", "invoice", "payment reminder", "overdue", "receivable"] },
     { key: "integration", query: "\"sync failure\" integration", label: "Integration and sync failures", terms: ["integration", "sync failure", "data mismatch", "webhook", "connector"] },
-    { key: "onboarding", query: "\"onboarding setup\" software", label: "Complex product onboarding", terms: ["onboarding", "setup", "configuration", "difficult", "learning curve"] }
+    { key: "onboarding", query: "\"onboarding setup\" software", label: "Complex product onboarding", terms: ["onboarding", "setup", "configuration", "difficult", "learning curve"] },
+    { key: "api-limits", query: "\"rate limit\" API", label: "API rate-limit friction", terms: ["rate limit", "rate limiting", "quota", "throttling", "api limit"] }
   ],
   "E-Commerce": [
     { key: "checkout", query: "\"payment failed\" checkout", label: "Checkout payment failures", terms: ["checkout", "payment failed", "payment error", "cart abandonment", "transaction"] },
     { key: "inventory", query: "\"inventory sync\"", label: "Inventory synchronization", terms: ["inventory sync", "stock sync", "product sync", "out of stock", "overselling"] },
     { key: "shipping", query: "\"shipping label\" workflow", label: "Shipping operations", terms: ["shipping label", "fulfillment", "delivery", "carrier"] },
     { key: "returns", query: "\"return refund\" ecommerce", label: "Returns and refunds", terms: ["return", "refund", "exchange", "reverse logistics", "return label"] },
-    { key: "catalog", query: "\"product catalog\" ecommerce", label: "Catalog maintenance", terms: ["product catalog", "product data", "variant", "listing", "product feed"] }
+    { key: "catalog", query: "\"product catalog\" ecommerce", label: "Catalog maintenance", terms: ["product catalog", "product data", "variant", "listing", "product feed"] },
+    { key: "cart-recovery", query: "\"cart abandonment\" checkout", label: "Abandoned-cart recovery", terms: ["cart abandonment", "abandoned cart", "cart recovery", "checkout abandonment"] }
   ],
   "Creator Tools": [
-    { key: "editing", query: "video editing repetitive workflow", label: "Repetitive editing work", terms: ["video editing", "editing workflow", "render", "timeline", "repetitive"] },
-    { key: "cost", query: "creator tool subscription too expensive", label: "Creator software price pressure", terms: ["expensive", "subscription", "pricing", "cheaper", "cost"] },
-    { key: "publishing", query: "content publishing workflow problem", label: "Multi-channel publishing", terms: ["publishing", "schedule", "cross post", "distribution", "social media"] },
-    { key: "transcription", query: "podcast transcription workflow problem", label: "Transcription cleanup", terms: ["transcription", "subtitle", "caption", "speaker", "transcript"] },
-    { key: "feedback", query: "creator client feedback approval workflow", label: "Client review and approval", terms: ["feedback", "approval", "review", "revision", "client"] }
+    { key: "editing", query: "video editing workflow", label: "Repetitive editing work", terms: ["video editing", "editing workflow", "render", "timeline", "repetitive"] },
+    { key: "cost", query: "creator software expensive", label: "Creator software price pressure", terms: ["expensive", "subscription", "pricing", "cheaper", "cost"] },
+    { key: "publishing", query: "content publishing schedule", label: "Multi-channel publishing", terms: ["publishing", "schedule", "cross post", "distribution", "social media"] },
+    { key: "transcription", query: "podcast transcription", label: "Transcription cleanup", terms: ["transcription", "subtitle", "caption", "speaker", "transcript"] },
+    { key: "feedback", query: "client feedback video", label: "Client review and approval", terms: ["feedback", "approval", "review", "revision", "client"] },
+    { key: "render-failure", query: "\"render failed\" video", label: "Render and export failures", terms: ["render failed", "render error", "export failed", "encoding error", "render crash"] }
   ]
 };
 
@@ -42,16 +45,46 @@ const EVIDENCE_TERMS = {
   billing: ["invoice", "payment reminder", "overdue", "receivable", "dunning"],
   integration: ["sync failure", "integration failure", "data mismatch", "webhook", "connector"],
   onboarding: ["product onboarding", "user onboarding", "customer onboarding", "onboarding setup", "getting started"],
+  "api-limits": ["rate limit", "rate limiting", "api quota", "throttling"],
   checkout: ["checkout", "payment failed", "payment error", "cart abandonment"],
   inventory: ["inventory sync", "stock sync", "product sync", "overselling"],
   shipping: ["shipping label", "shipping provider", "fulfillment", "carrier"],
   returns: ["return", "refund", "exchange", "rma"],
   catalog: ["product catalog", "product data", "product variant", "product feed"],
-  editing: ["video editing", "editing workflow", "render workflow", "timeline"],
-  cost: ["too expensive", "subscription cost", "creator pricing", "cheaper alternative"],
-  publishing: ["content publishing", "cross post", "publishing workflow", "social scheduling"],
+  "cart-recovery": ["cart abandonment", "abandoned cart", "cart recovery", "checkout abandonment"],
+  editing: ["video editing", "editing workflow", "render workflow", "render", "timeline"],
+  cost: ["too expensive", "expensive", "subscription cost", "subscription", "creator pricing", "pricing", "cheaper alternative"],
+  publishing: ["content publishing", "publishing", "cross post", "publishing workflow", "social scheduling", "schedule"],
   transcription: ["transcription", "subtitle", "caption", "transcript"],
-  feedback: ["client feedback", "client approval", "revision", "review workflow"]
+  feedback: ["client feedback", "feedback", "client approval", "approval", "revision", "review workflow"],
+  "render-failure": ["render failed", "render error", "export failed", "encoding error", "render crash"]
+};
+
+const STACK_SITES = {
+  "SaaS": ["softwareengineering", "webapps"],
+  "E-Commerce": ["stackoverflow", "webapps"],
+  "Creator Tools": ["video", "graphicdesign", "sound"]
+};
+
+const STACK_QUERIES = {
+  "software-cost": "software expensive pricing",
+  "manual-work": "manual workflow automation",
+  billing: "invoice payment reminder",
+  integration: "integration sync failure",
+  onboarding: "software onboarding setup",
+  "api-limits": "api rate limit",
+  checkout: "checkout payment failed",
+  inventory: "inventory sync",
+  shipping: "shipping label",
+  returns: "return refund ecommerce",
+  catalog: "product catalog",
+  "cart-recovery": "cart abandonment checkout",
+  editing: "video editing workflow",
+  cost: "software subscription expensive",
+  publishing: "content publishing schedule",
+  transcription: "podcast transcription",
+  feedback: "client feedback video",
+  "render-failure": "video render failed"
 };
 
 function clean(value) {
@@ -71,15 +104,22 @@ async function fetchJson(url, options = {}) {
 }
 
 async function collectHn(category, query) {
-  const params = new URLSearchParams({ query, tags: "story", hitsPerPage: "40" });
-  const json = await fetchJson(`https://hn.algolia.com/api/v1/search_by_date?${params}`);
-  return (json.hits || []).filter((item) => item.objectID && item.title).map((item) => ({
-    id: `hn_${item.objectID}`, platform: "hackernews", category, query,
-    title: clean(item.title), body: clean(item.story_text || item.title),
-    source_url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
-    score: Number(item.points || 0), comment_count: Number(item.num_comments || 0),
-    posted_at: item.created_at, collected_at: new Date().toISOString()
+  const searches = await Promise.all(["story", "comment"].map(async (tag) => {
+    const params = new URLSearchParams({ query, tags: tag, hitsPerPage: "40" });
+    const json = await fetchJson(`https://hn.algolia.com/api/v1/search_by_date?${params}`);
+    return (json.hits || []).map((item) => ({ item, tag }));
   }));
+  return searches.flat().filter(({ item }) => item.objectID && (item.title || item.comment_text)).map(({ item, tag }) => {
+    const comment = clean(item.comment_text || "");
+    const title = clean(item.title || item.story_title || comment.slice(0, 220));
+    return {
+      id: `hn_${item.objectID}`, platform: "hackernews", category, query,
+      title, body: clean(comment || item.story_text || title),
+      source_url: item.url || `https://news.ycombinator.com/item?id=${item.objectID}`,
+      score: Number(item.points || 0), comment_count: tag === "comment" ? 1 : Number(item.num_comments || 0),
+      posted_at: item.created_at, collected_at: new Date().toISOString()
+    };
+  });
 }
 
 async function collectGithub(category, query) {
@@ -93,15 +133,20 @@ async function collectGithub(category, query) {
   }));
 }
 
-async function collectStack(category, query) {
-  const params = new URLSearchParams({ order: "desc", sort: "activity", q: query, site: "stackoverflow", pagesize: "40" });
-  const json = await fetchJson(`https://api.stackexchange.com/2.3/search/advanced?${params}`);
-  return (json.items || []).filter((item) => item.question_id && item.title).map((item) => ({
-    id: `stack_${item.question_id}`, platform: "stackexchange", category, query,
-    title: clean(item.title), body: clean(item.title), source_url: item.link,
-    score: Number(item.score || 0), comment_count: Number(item.answer_count || 0),
-    posted_at: new Date(Number(item.last_activity_date || item.creation_date || 0) * 1000).toISOString(), collected_at: new Date().toISOString()
+async function collectStack(category, query, cacheQuery = query) {
+  const sites = STACK_SITES[category] || ["stackoverflow"];
+  const fromdate = String(Math.floor((Date.now() - 365 * 86400000) / 1000));
+  const results = await Promise.allSettled(sites.map(async (site) => {
+    const params = new URLSearchParams({ order: "desc", sort: "activity", q: query, site, pagesize: "30", fromdate });
+    const json = await fetchJson(`https://api.stackexchange.com/2.3/search/advanced?${params}`);
+    return (json.items || []).filter((item) => item.question_id && item.title).map((item) => ({
+      id: `stack_${site}_${item.question_id}`, platform: "stackexchange", category, query: cacheQuery,
+      title: clean(item.title), body: clean(item.title), source_url: item.link,
+      score: Number(item.score || 0), comment_count: Number(item.answer_count || 0),
+      posted_at: new Date(Number(item.last_activity_date || item.creation_date || 0) * 1000).toISOString(), collected_at: new Date().toISOString()
+    }));
   }));
+  return results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
 }
 
 function uniqueItems(items) {
@@ -216,11 +261,23 @@ function painScore(items) {
 
 function withinPeriod(items, period) {
   const days = period === "weekly" ? 8 : 35;
+  return withinDays(items, days);
+}
+
+function withinDays(items, days) {
   const cutoff = Date.now() - days * 86400000;
   return items.filter((item) => {
     const timestamp = new Date(item.posted_at || 0).getTime();
     return Number.isFinite(timestamp) && timestamp >= cutoff;
   });
+}
+
+function countByPlatform(items) {
+  return items.reduce((counts, item) => {
+    const platform = item.platform || "unknown";
+    counts[platform] = (counts[platform] || 0) + 1;
+    return counts;
+  }, {});
 }
 
 function narrative(topic, category, items) {
@@ -230,16 +287,19 @@ function narrative(topic, category, items) {
     billing: ["Payment reminders and invoice follow-up still require too much manual attention.", "Create a lightweight receivables assistant with polite sequences, tone controls, and a clear overdue dashboard for small businesses."],
     integration: ["Broken synchronization and fragile connectors create repeated support work and mistrust in system data.", "Build a narrow sync monitor that detects mismatches, explains failures plainly, and offers guided recovery before data drifts."],
     onboarding: ["Configuration-heavy onboarding delays the moment a customer receives value.", "Turn setup into a short guided path with sensible defaults, import checks, and a visible time-to-value milestone."],
+    "api-limits": ["Rate limits and opaque quotas interrupt otherwise healthy integrations and create avoidable support work.", "Build a quota observability layer that predicts exhaustion, coordinates retries, and explains throttling before customer workflows fail."],
     checkout: ["Payment and checkout failures directly interrupt revenue at the most valuable point in the journey.", "Provide merchant-facing failure diagnostics and recovery actions that identify the exact payment step losing customers."],
     inventory: ["Merchants struggle to trust stock levels when products are sold across multiple systems.", "Create a reconciliation layer that flags conflicting quantities, explains the source of truth, and prevents overselling."],
     shipping: ["Label creation, carrier switching, and fulfillment exceptions remain fragmented for small sellers.", "Unify the exception workflow - failed labels, address corrections, and carrier changes - instead of rebuilding a full shipping suite."],
     returns: ["Returns and refunds create status confusion for both customers and operators.", "Build a branded self-service return flow with eligibility rules and a single operational queue for exceptions."],
     catalog: ["Product variants and listing data become inconsistent across sales channels.", "Create a catalog quality monitor that finds mismatched fields and lets operators approve targeted corrections."],
+    "cart-recovery": ["Merchants lose purchase intent when abandoned carts cannot be segmented and recovered at the right moment.", "Create a privacy-aware recovery workflow that explains abandonment patterns and triggers channel-appropriate follow-up."],
     editing: ["Creators lose time repeating small editing and export tasks across every project.", "Package the most repetitive edit-to-export sequence into a preset-driven assistant that preserves creative control."],
     cost: ["Independent creators feel subscription fatigue from broad tools with features they rarely use.", "Offer a focused creator utility with project-based pricing or a low fixed fee and instant onboarding."],
     publishing: ["Publishing the same asset across channels requires repetitive formatting and scheduling.", "Transform one source asset into channel-ready variants with a review step and a reliable publishing checklist."],
     transcription: ["Automatic transcripts still require time-consuming cleanup before publication.", "Focus on speaker consistency, terminology dictionaries, and fast review rather than generic transcription alone."],
-    feedback: ["Client revisions arrive through scattered messages and ambiguous timestamps.", "Create a media-native review space that turns timestamped feedback into an accountable approval sequence."]
+    feedback: ["Client revisions arrive through scattered messages and ambiguous timestamps.", "Create a media-native review space that turns timestamped feedback into an accountable approval sequence."],
+    "render-failure": ["Creators lose production time when renders or exports fail late with unclear diagnostics.", "Build a preflight and recovery assistant that catches codec, storage, and timeline risks before a long render begins."]
   };
   return patterns[topic.key] || [`Public discussions show repeated friction around ${topic.label.toLowerCase()}.`, `Test a narrow ${category.toLowerCase()} workflow that resolves the repeated failure with measurable time savings.`];
 }
@@ -251,24 +311,43 @@ function competitiveOpening(topic) {
     billing: "Accounting suites treat follow-up as a secondary feature; specialize in receivables communication, tone control, and overdue recovery for small teams.",
     integration: "Connector catalogs compete on quantity, not recovery quality; differentiate with explainable sync failures, reconciliation, and guided repair.",
     onboarding: "Most onboarding products add tours on top of complex setup; compete by removing configuration decisions and measuring time to first successful outcome.",
+    "api-limits": "API monitoring tools report generic errors after failure; own proactive quota forecasting, retry policy simulation, and provider-specific remediation.",
     checkout: "Analytics tools show where buyers leave but rarely explain payment failure causes; own the merchant recovery workflow from diagnosis to retry.",
     inventory: "Commerce suites expose stock counts but leave reconciliation to operators; focus on cross-channel conflicts, source-of-truth rules, and oversell prevention.",
     shipping: "Shipping platforms optimize label volume; target small sellers with an exception-first workspace for failed labels, address fixes, and carrier changes.",
     returns: "Return portals optimize customer intake while operational exceptions remain fragmented; differentiate with eligibility automation and one accountable queue.",
     catalog: "PIM platforms are oversized for smaller merchants; offer continuous catalog quality checks and approval-based corrections across a few key channels.",
+    "cart-recovery": "Email platforms automate reminders but rarely diagnose why checkout intent disappeared; compete on actionable abandonment segments and recovery timing.",
     editing: "Full editing suites compete on creative breadth; own the repetitive edit-to-export steps that creators perform identically on every project.",
     cost: "Creator incumbents monetize feature abundance; counter with a single-purpose tool, immediate import, and pricing aligned to projects rather than seats.",
     publishing: "Schedulers stop at posting; differentiate by adapting one asset to channel constraints and preserving a human approval checkpoint.",
     transcription: "Commodity transcription competes on raw accuracy; focus on the expensive cleanup layer: speakers, terminology, captions, and publish-ready review.",
-    feedback: "Project tools separate comments from media context; win with timestamp-native revisions and an explicit path from feedback to final approval."
+    feedback: "Project tools separate comments from media context; win with timestamp-native revisions and an explicit path from feedback to final approval.",
+    "render-failure": "Editors expose technical logs after a failed export; differentiate with preflight detection, plain-language causes, and resumable recovery."
   };
   return openings[topic.key] || `Compete on a narrowly defined ${topic.label.toLowerCase()} outcome with evidence-backed positioning and measurable time-to-value.`;
 }
 
-function makeDraft(category, topic, items, rawCount, period) {
+function selectDiverseSources(items, limit = 8) {
+  const groups = new Map();
+  for (const item of items) {
+    const platform = item.platform || "unknown";
+    if (!groups.has(platform)) groups.set(platform, []);
+    groups.get(platform).push(item);
+  }
+  const selected = [];
+  while (selected.length < limit && [...groups.values()].some((group) => group.length)) {
+    for (const group of groups.values()) {
+      if (group.length && selected.length < limit) selected.push(group.shift());
+    }
+  }
+  return selected;
+}
+
+function makeDraft(category, topic, items, rawCount, period, evidenceItems = items) {
   const [problem, angle] = narrative(topic, category, items);
-  const strongSources = items.filter((item) => item.strong_evidence === true);
-  const sources = strongSources.slice(0, 8);
+  const strongSources = evidenceItems.filter((item) => item.strong_evidence === true);
+  const sources = selectDiverseSources(strongSources, 8);
   const platforms = [...new Set(items.map((item) => item.platform))];
   const pain = painScore(items);
   const relevance = Math.round(items.reduce((sum, item) => sum + Number(item.relevance_confidence || 0), 0) / Math.max(1, items.length));
@@ -285,7 +364,7 @@ function makeDraft(category, topic, items, rawCount, period) {
     adjusted_score: Number((pain * (relevance / 100)).toFixed(2)),
     mention_count: items.length, current_period_mentions: items.length, previous_mention_count: 0,
     trend_direction: "new signal", source_urls: sources.map((item) => item.source_url),
-    source_details: sources.map((item) => ({ title: item.title, url: item.source_url, platform: item.platform, relevance_confidence: item.relevance_confidence, relevance_reason: item.relevance_reason })),
+    source_details: sources.map((item) => ({ title: item.title, url: item.source_url, platform: item.platform, posted_at: item.posted_at, relevance_confidence: item.relevance_confidence, relevance_reason: item.relevance_reason })),
     status: "draft", created_at: new Date().toISOString(), updated_at: new Date().toISOString()
   };
 }
@@ -302,10 +381,22 @@ export default async function handler(req, res) {
     const config = PLANS[plan];
     if (!config) return sendJson(res, 400, { error: "Choose Starter, Growth, or Team." });
 
+    const { data } = await readStore();
+    const cachePeriodCutoff = Date.now() - 35 * 86400000;
+    const githubFreshCutoff = Date.now() - 6 * 3600000;
+
     const jobs = config.categories.flatMap((category) => QUERIES[category].map((topic) => ({ category, topic })));
     const results = await Promise.all(jobs.map(async ({ category, topic }) => {
-      const settled = await Promise.allSettled([collectHn(category, topic.query), collectGithub(category, topic.query), collectStack(category, topic.query)]);
-      const raw = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+      const cached = (data.raw_items || []).filter((item) =>
+        item.category === category
+        && item.query === topic.query
+        && new Date(item.posted_at || 0).getTime() >= cachePeriodCutoff
+      );
+      const recentGithub = cached.filter((item) => item.platform === "github" && new Date(item.collected_at || 0).getTime() >= githubFreshCutoff);
+      const githubRequest = recentGithub.length >= 2 ? Promise.resolve([]) : collectGithub(category, topic.query);
+      const settled = await Promise.allSettled([collectHn(category, topic.query), githubRequest, collectStack(category, STACK_QUERIES[topic.key] || topic.query, topic.query)]);
+      const freshRaw = settled.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+      const raw = uniqueItems([...freshRaw, ...cached]);
       const relevance = await evaluateRelevance(raw, topic);
       return {
         category, topic, raw,
@@ -321,8 +412,12 @@ export default async function handler(req, res) {
     const candidateDrafts = config.periods.flatMap((period) => results.flatMap((result) => {
       const periodItems = withinPeriod(result.items, period);
       const periodRaw = withinPeriod(result.raw, period);
-      return periodItems.length >= 3
-        ? [makeDraft(result.category, result.topic, periodItems, periodRaw.length, period)]
+      const evidenceItems = withinDays(result.items, 365);
+      const strongEvidence = evidenceItems.filter((item) => item.strong_evidence === true);
+      const evidencePlatforms = new Set(strongEvidence.map((item) => item.platform)).size;
+      const minimumMentions = plan === "team" && period === "monthly" && strongEvidence.length >= 5 && evidencePlatforms >= 2 ? 2 : 3;
+      return periodItems.length >= minimumMentions
+        ? [makeDraft(result.category, result.topic, periodItems, periodRaw.length, period, evidenceItems)]
         : [];
     }));
     const drafts = candidateDrafts
@@ -331,7 +426,6 @@ export default async function handler(req, res) {
     const filteredLowRelevance = candidateDrafts.length - drafts.length;
     const errors = results.flatMap((result) => result.errors);
 
-    const { data } = await readStore();
     const refreshedCategories = new Set(config.categories);
     const refreshedPeriods = new Set(config.periods);
     const existingScopedDrafts = (data.report_drafts || []).filter((draft) =>
@@ -385,6 +479,9 @@ export default async function handler(req, res) {
         topic: result.topic.label,
         raw: result.raw.length,
         uniqueRelevant: result.items.length,
+        rawByPlatform: countByPlatform(result.raw),
+        relevantByPlatform: countByPlatform(result.items),
+        strongEvidenceByPlatform: countByPlatform(result.items.filter((item) => item.strong_evidence === true)),
         weeklyRelevant: withinPeriod(result.items, "weekly").length,
         monthlyRelevant: withinPeriod(result.items, "monthly").length
       }))

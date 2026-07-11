@@ -66,8 +66,9 @@ function addOpportunity(doc, draft, index) {
   const details = (draft.source_details || []).filter((item) => item.url).slice(0, 4);
   details.forEach((detail, sourceIndex) => {
     if (sy > 760) return;
+    const sourceDate = detail.posted_at ? String(detail.posted_at).slice(0, 10) : "date unknown";
     doc.font("Helvetica-Bold").fontSize(8.2).fillColor(C.ink)
-      .text(`${sourceIndex + 1}. ${safeText(detail.title, "Source discussion").slice(0, 82)}`, 58, sy, { width: 479, height: 11, ellipsis: true });
+      .text(`${sourceIndex + 1}. ${safeText(detail.title, "Source discussion").slice(0, 72)} (${sourceDate})`, 58, sy, { width: 479, height: 11, ellipsis: true });
     doc.font("Helvetica").fontSize(7.4).fillColor(C.green)
       .text(String(detail.url).slice(0, 112), 70, sy + 12, { width: 467, height: 10, ellipsis: true });
     sy += 29;
@@ -138,6 +139,7 @@ export default async function handler(req, res) {
     doc.font("Helvetica").fontSize(8).fillColor(C.paleGold).text("PUBLIC SOURCE TYPES", 288, 520, { characterSpacing: 0.7 });
     doc.font("Helvetica").fontSize(9).fillColor("#CBD2DC").text(platforms.join(" / ") || "Run Scan & Prepare to collect evidence", 82, 548, { width: 420 });
     doc.font("Helvetica").fontSize(9).fillColor("#98A2B3").text(`Generated ${new Date().toISOString().slice(0, 10)}  |  Minimum relevance ${MIN_RELEVANCE_THRESHOLD}%  |  Ranked by adjusted score.`, 61, 694, { width: 455, lineGap: 4 });
+    doc.font("Helvetica").fontSize(8).fillColor("#667085").text("Mention metrics use the report period; supporting source evidence may use the previous 365 days and is dated on each opportunity page.", 61, 722, { width: 455, lineGap: 3 });
 
     drafts.forEach((draft, index) => addOpportunity(doc, draft, index));
     addFooters(doc);

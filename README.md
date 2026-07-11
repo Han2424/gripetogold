@@ -155,6 +155,8 @@ Optional authorized sources:
 - G2 review data through an authorized export or licensed JSON feed (`G2_FEED_URL`)
 
 An opportunity must meet `MIN_RELEVANCE_THRESHOLD` (default `50`) before it enters the main report. `relevance_score` is the average source-level relevance confidence for included evidence; noisy-search coverage is retained separately as `search_coverage_score`. Main-report ordering uses `adjusted_score = pain_score * (relevance_score / 100)` rather than raw pain alone.
+
+Report-period mention metrics use the last 8 days for weekly reports and 35 days for monthly reports. Supporting source links may come from the previous 365 days and display their dates in the PDF. Team Monthly normally requires three in-period mentions; two are accepted only when at least five strong supporting sources span at least two platforms.
 Missing optional credentials do not create fake data or fail the rest of a collection run.
 
 Relevance configuration:
