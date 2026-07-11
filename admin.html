@@ -410,20 +410,25 @@
     setStatus('Creating PDF...');
     setButtons(true);
     try {
-      setStatus(`Scanning fresh ${period} signals for ${plan}...`);
-      const scanResponse = await fetch(apiUrl('/api/packages/run'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-admin-token-b64': encodeToken(token) },
-        body: JSON.stringify({ plan })
-      });
-      const scanData = await readJsonResponse(scanResponse);
-      if (!scanResponse.ok) throw new Error(scanData.error || 'Could not scan fresh signals.');
-      setStatus(`Scan complete: ${scanData.run.drafts_created} opportunities prepared. Creating PDF...`);
-      const response = await fetch(apiUrl('/api/reports/pdf'), {
+      const requestPdf = () => fetch(apiUrl('/api/reports/pdf'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token-b64': encodeToken(token) },
         body: JSON.stringify({ plan, period })
       });
+      let response = await requestPdf();
+      if (response.status === 409) {
+        await readJsonResponse(response);
+        setStatus(`No saved ${period} report found. Scanning fresh signals for ${plan}...`);
+        const scanResponse = await fetch(apiUrl('/api/packages/run'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-admin-token-b64': encodeToken(token) },
+          body: JSON.stringify({ plan })
+        });
+        const scanData = await readJsonResponse(scanResponse);
+        if (!scanResponse.ok) throw new Error(scanData.error || 'Could not scan fresh signals.');
+        setStatus(`Scan complete: ${scanData.run.drafts_created} new opportunities prepared. Creating PDF...`);
+        response = await requestPdf();
+      }
       if (!response.ok) {
         const data = await readJsonResponse(response);
         throw new Error(data.error || 'Could not create PDF.');

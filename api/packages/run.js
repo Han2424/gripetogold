@@ -332,13 +332,22 @@ export default async function handler(req, res) {
     const errors = results.flatMap((result) => result.errors);
 
     const { data } = await readStore();
+    const refreshedCategories = new Set(config.categories);
+    const refreshedPeriods = new Set(config.periods);
+    const existingScopedDrafts = (data.report_drafts || []).filter((draft) =>
+      refreshedCategories.has(draft.category)
+      && refreshedPeriods.has(draft.period)
+      && Number(draft.relevance_score || 0) >= MIN_RELEVANCE_THRESHOLD
+      && Array.isArray(draft.source_details)
+      && draft.source_details.length >= 2
+    );
     const oldRaw = new Map((data.raw_items || []).map((item) => [item.id || item.source_url, item]));
     rawItems.forEach((item) => oldRaw.set(item.id, item));
     data.raw_items = [...oldRaw.values()].sort((a, b) => new Date(b.collected_at) - new Date(a.collected_at)).slice(0, 1500);
-    const refreshedCategories = new Set(config.categories);
-    const refreshedPeriods = new Set(config.periods);
+    const preservedPreviousDrafts = drafts.length === 0 ? existingScopedDrafts : [];
+    const refreshedDrafts = drafts.length ? drafts : preservedPreviousDrafts;
     data.report_drafts = [
-      ...drafts,
+      ...refreshedDrafts,
       ...(data.report_drafts || []).filter((draft) => !refreshedCategories.has(draft.category) || !refreshedPeriods.has(draft.period))
     ].slice(0, 200);
     data.package_runs = Array.isArray(data.package_runs) ? data.package_runs : [];
@@ -360,6 +369,7 @@ export default async function handler(req, res) {
       id: randomUUID(), plan, plan_label: config.label, periods: config.periods,
       collected: rawItems.length, drafts_created: drafts.length, source_errors: errors.length,
       filtered_low_relevance: filteredLowRelevance,
+      preserved_previous_drafts: preservedPreviousDrafts.length,
       min_relevance_threshold: MIN_RELEVANCE_THRESHOLD,
       relevance_evaluator: relevanceLogs[0]?.evaluator || "rules",
       completed_at: new Date().toISOString()

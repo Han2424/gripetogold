@@ -112,6 +112,13 @@ export default async function handler(req, res) {
       .sort((a, b) => Number(b.adjusted_score || 0) - Number(a.adjusted_score || 0)).slice(0, 12);
     const platforms = [...new Set(drafts.flatMap((draft) => (draft.source_details || []).map((source) => source.platform)).filter(Boolean))];
 
+    if (!drafts.length) {
+      return sendJson(res, 409, {
+        error: "No qualified opportunities are available for this plan and period. Run a fresh scan and try again.",
+        code: "NO_QUALIFIED_OPPORTUNITIES"
+      });
+    }
+
     const doc = new PDFDocument({ size: "A4", margin: 0, bufferPages: true, info: { Title: `GripeToGold ${config.label} Opportunity Report`, Author: "GripeToGold" } });
     const chunks = [];
     doc.on("data", (chunk) => chunks.push(chunk));
@@ -132,11 +139,7 @@ export default async function handler(req, res) {
     doc.font("Helvetica").fontSize(9).fillColor("#CBD2DC").text(platforms.join(" / ") || "Run Scan & Prepare to collect evidence", 82, 548, { width: 420 });
     doc.font("Helvetica").fontSize(9).fillColor("#98A2B3").text(`Generated ${new Date().toISOString().slice(0, 10)}  |  Minimum relevance ${MIN_RELEVANCE_THRESHOLD}%  |  Ranked by adjusted score.`, 61, 694, { width: 455, lineGap: 4 });
 
-    if (!drafts.length) {
-      doc.font("Helvetica-Bold").fontSize(15).fillColor(C.white).text("No qualified opportunities yet", 61, 620);
-    } else {
-      drafts.forEach((draft, index) => addOpportunity(doc, draft, index));
-    }
+    drafts.forEach((draft, index) => addOpportunity(doc, draft, index));
     addFooters(doc);
     doc.end();
     await completed;
