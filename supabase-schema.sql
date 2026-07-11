@@ -3,16 +3,9 @@ create table if not exists public.waitlist_subscribers (
   email text not null unique,
   source text not null default 'landing_page',
   plan_interest text,
-  interests text[] not null default '{}',
   first_pdf_requested boolean not null default true,
-  last_report_at timestamptz,
-  next_report_due timestamptz,
   created_at timestamptz not null default now()
 );
-
-alter table public.waitlist_subscribers add column if not exists interests text[] not null default '{}';
-alter table public.waitlist_subscribers add column if not exists last_report_at timestamptz;
-alter table public.waitlist_subscribers add column if not exists next_report_due timestamptz;
 
 alter table public.waitlist_subscribers enable row level security;
 
