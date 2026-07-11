@@ -157,8 +157,6 @@ Optional authorized sources:
 An opportunity must have at least 50 relevant, deduplicated source items and a 60% semantic relevance ratio before it becomes a qualified draft.
 Missing optional credentials do not create fake data or fail the rest of a collection run.
 
-Signup profiles store a plan plus one to three interests. In the admin panel, selecting a subscriber automatically restricts the available weekly/monthly period by plan, collects fresh signals for that subscriber's interests, prepares the latest draft, creates the PDF, and advances the next-report date.
-
 ## Public trend history
 
 `trends.html` is a public social-proof page backed by `trends.json`. It intentionally starts empty. Add an entry only after a timestamped prediction has completed its evaluation window and the outcome has been checked. The backend also exposes published drafts at `GET /api/public/trends`.
