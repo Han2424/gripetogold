@@ -681,6 +681,20 @@
 </footer>
 
 <script>
+  const LIVE_API_BASE = 'https://gripetogold-app.vercel.app';
+
+  function apiBase() {
+    return ['localhost', '127.0.0.1'].includes(window.location.hostname) ? '' : LIVE_API_BASE;
+  }
+
+  async function readJsonResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Signup server is not returning JSON yet.');
+    }
+    return response.json();
+  }
+
   function toggleFaq(el) {
     const item = el.closest('.faq-item');
     const isOpen = item.classList.contains('open');
@@ -704,23 +718,12 @@
       button.textContent = 'Saving...';
 
       try {
-        const endpoint = isLocal
-          ? '/api/waitlist'
-          : 'https://formsubmit.co/ajax/help.gripetogold@gmail.com';
-        const payload = isLocal
-          ? {
-              email,
-              source: 'landing_page',
-              planInterest: form.dataset.planInterest || 'free_pdf'
-            }
-          : {
-              email,
-              source: 'GripeToGold landing page',
-              plan_interest: form.dataset.planInterest || 'free_pdf',
-              _subject: 'New GripeToGold signup',
-              _template: 'table',
-              _captcha: 'false'
-            };
+        const endpoint = `${apiBase()}/api/waitlist`;
+        const payload = {
+          email,
+          source: 'landing_page',
+          planInterest: form.dataset.planInterest || 'free_pdf'
+        };
 
         const response = await fetch(endpoint, {
           method: 'POST',
@@ -728,7 +731,7 @@
           body: JSON.stringify(payload)
         });
 
-        const result = await response.json();
+        const result = await readJsonResponse(response);
 
         if (!response.ok) {
           throw new Error(result.error || 'Could not save your email.');

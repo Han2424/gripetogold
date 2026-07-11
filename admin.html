@@ -347,6 +347,15 @@
 </main>
 
 <script>
+  const LIVE_API_BASE = 'https://gripetogold-app.vercel.app';
+  const PLAN_LABELS = {
+    free_pdf: 'Free PDF',
+    free_pdf_footer: 'Free PDF',
+    starter: 'Starter',
+    growth: 'Growth',
+    team: 'Team'
+  };
+
   const tokenInput = document.querySelector('#adminToken');
   const statusEl = document.querySelector('#status');
   const savedToken = localStorage.getItem('gripetogold_admin_token');
@@ -418,10 +427,10 @@
     if (!token) return;
 
     try {
-      const response = await fetch('/api/admin/overview', {
+      const response = await fetch(apiUrl('/api/admin/overview'), {
         headers: { 'x-admin-token-b64': encodeToken(token) }
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || 'Could not load overview.');
 
       renderStats(data.stats || {});
@@ -429,7 +438,7 @@
       renderList('#waitlist', data.waitlist, (item) => `
         <div class="item">
           <strong>${escapeHtml(item.email)}</strong>
-          <div class="meta">${escapeHtml(item.plan_interest || 'free_pdf')} - ${formatDate(item.created_at)}</div>
+          <div class="meta">${escapeHtml(planLabel(item.plan_interest))} - ${formatDate(item.created_at)}</div>
         </div>
       `);
 
@@ -465,7 +474,7 @@
     setButtons(true);
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(apiUrl(url), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +482,7 @@
         },
         body: JSON.stringify(payload)
       });
-      const data = await response.json();
+      const data = await readJsonResponse(response);
       if (!response.ok) throw new Error(data.error || 'Request failed.');
       onSuccess(data);
     } catch (error) {
@@ -538,6 +547,24 @@
       '"': '&quot;',
       "'": '&#039;'
     }[char]));
+  }
+
+  function apiUrl(path) {
+    const base = ['localhost', '127.0.0.1'].includes(window.location.hostname) ? '' : LIVE_API_BASE;
+    return `${base}${path}`;
+  }
+
+  async function readJsonResponse(response) {
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error('Live API is not returning JSON yet. Wait for the latest Vercel deploy to finish, then refresh.');
+    }
+    return response.json();
+  }
+
+  function planLabel(value) {
+    const key = String(value || 'free_pdf').toLowerCase();
+    return PLAN_LABELS[key] || value || 'Free PDF';
   }
 
   function encodeToken(value) {
