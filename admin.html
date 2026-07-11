@@ -239,10 +239,6 @@
   @media (max-width: 880px) {
     .grid, .controls, .stats, .package-row, .report-builder, .auth-bar { grid-template-columns: 1fr; }
   .package-row button { width: 100%; }
-  .subscriber-item { width:100%; text-align:left; background:transparent; border:1px solid var(--line); color:var(--text); padding:14px; border-radius:10px; cursor:pointer; }
-  .subscriber-item:hover, .subscriber-item.selected { border-color:var(--red); background:rgba(232,41,28,.06); }
-  .subscriber-detail { display:none; margin-top:18px; }
-  .subscriber-detail.open { display:block; }
   }
 </style>
 </head>
@@ -320,15 +316,6 @@
     </section>
   </div>
 
-  <section class="panel subscriber-detail" id="subscriberDetail">
-    <h2>Subscriber Report</h2>
-    <div id="subscriberProfile" class="list"></div>
-    <div class="report-builder" style="margin-top:14px;">
-      <label class="field-label">Report period<select id="subscriberPeriod"><option value="monthly">Monthly</option></select></label>
-      <button id="prepareSubscriberPdf">Collect Latest Signals + Create PDF</button>
-    </div>
-  </section>
-
   <section class="panel" style="margin-top:18px;">
     <h2>Recent Raw Signals (Unfiltered)</h2>
     <p>This is the source inbox. Only items that pass title-level semantic relevance checks can appear in opportunity drafts and PDFs.</p>
@@ -367,8 +354,6 @@
 
   const pdfPlan = document.querySelector('#pdfPlan');
   const pdfPeriod = document.querySelector('#pdfPeriod');
-  let selectedSubscriber = null;
-  let subscribersByEmail = new Map();
 
   document.querySelectorAll('.package-run').forEach((button) => {
     button.addEventListener('click', () => preparePackage(button.dataset.plan));
@@ -378,7 +363,6 @@
   document.querySelector('#createPdf').addEventListener('click', () => generatePdf());
   document.querySelector('#saveTeam').addEventListener('click', () => saveTeamSettings());
   document.querySelector('#refresh').addEventListener('click', () => loadOverview());
-  document.querySelector('#prepareSubscriberPdf').addEventListener('click', () => generateSubscriberPdf());
 
   async function preparePackage(plan) {
     selectPackage(plan);
@@ -442,16 +426,12 @@
 
       renderStats(data.stats || {});
 
-      subscribersByEmail = new Map(data.waitlist.map((item) => [item.email, item]));
       renderList('#waitlist', data.waitlist, (item) => `
-        <button class="subscriber-item" data-subscriber-email="${escapeHtml(item.email)}">
+        <div class="item">
           <strong>${escapeHtml(item.email)}</strong>
-          <div class="meta">${escapeHtml(item.plan_interest || 'starter')} · ${escapeHtml((item.interests || []).join(', ') || 'No interests')} · next ${formatDate(item.next_report_due)}</div>
-        </button>
+          <div class="meta">${escapeHtml(item.plan_interest || 'free_pdf')} - ${formatDate(item.created_at)}</div>
+        </div>
       `);
-      document.querySelectorAll('.subscriber-item').forEach((button) => {
-        button.addEventListener('click', () => selectSubscriber(button.dataset.subscriberEmail));
-      });
 
       renderList('#drafts', data.drafts, (item) => `
         <div class="item">
@@ -501,38 +481,6 @@
     } finally {
       setButtons(false);
     }
-  }
-
-  function selectSubscriber(email) {
-    selectedSubscriber = subscribersByEmail.get(email) || null;
-    if (!selectedSubscriber) return;
-    const plan = selectedSubscriber.plan_interest || 'starter';
-    const period = document.querySelector('#subscriberPeriod');
-    period.innerHTML = plan === 'starter'
-      ? '<option value="monthly">Monthly</option>'
-      : '<option value="weekly">Weekly</option><option value="monthly">Monthly</option>';
-    document.querySelector('#subscriberProfile').innerHTML = `
-      <div class="item"><strong>${escapeHtml(selectedSubscriber.email)}</strong>
-        <div class="meta">Plan: ${escapeHtml(plan)}</div>
-        <div class="meta">Interests: ${escapeHtml((selectedSubscriber.interests || []).join(', ') || 'Not selected')}</div>
-        <div class="meta">Last report: ${formatDate(selectedSubscriber.last_report_at) || 'Never'} · Next due: ${formatDate(selectedSubscriber.next_report_due) || 'Not scheduled'}</div>
-      </div>`;
-    document.querySelector('#subscriberDetail').classList.add('open');
-    document.querySelectorAll('.subscriber-item').forEach((button) => button.classList.toggle('selected', button.dataset.subscriberEmail === email));
-    document.querySelector('#subscriberDetail').scrollIntoView({ behavior:'smooth', block:'center' });
-  }
-
-  async function generateSubscriberPdf() {
-    if (!selectedSubscriber) {
-      setStatus('Choose a subscriber first.', 'error');
-      return;
-    }
-    const period = document.querySelector('#subscriberPeriod').value;
-    await action('/api/reports/pdf', { subscriberEmail: selectedSubscriber.email, period, prepareLatest: true }, (data) => {
-      setStatus(`${selectedSubscriber.email}: ${data.plan} / ${data.period} PDF created for ${data.categories.join(', ')}.`, 'success');
-      window.open(data.url, '_blank');
-      loadOverview({ preserveStatus: true });
-    });
   }
 
   function getToken() {
